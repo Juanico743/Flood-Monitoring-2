@@ -105,7 +105,7 @@ class _DashboardState extends State<Dashboard> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      'Location: '
+                        'Location: '
                     ),
 
                     Text(

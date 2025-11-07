@@ -1,40 +1,29 @@
+import 'package:floodmonitoring/pages/dashboard.dart';
+import 'package:floodmonitoring/pages/map.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'pages/dashboard.dart';
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Keep the app in immersive mode
-  SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-
-  // Lock orientation to portrait
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
 
-  // Initialize your connection here
-  // Example: await initializeSensorConnection();
+  SystemChrome.setEnabledSystemUIMode(
+    SystemUiMode.immersiveSticky,
+  );
 
-  runApp(const MyApp());
-}
+  runApp(MaterialApp(
+    initialRoute: '/map',
+    routes: {
+      '/' : (context) => Dashboard(),
+      '/map' : (context) => Map(),
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
 
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Water Level Monitoring',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-      ),
-      home: const Dashboard(),
-      routes: {
-        '/dashboard': (context) => const Dashboard(),
-        // Add more pages later if needed
-      },
-    );
-  }
+
+    },
+  ));
 }

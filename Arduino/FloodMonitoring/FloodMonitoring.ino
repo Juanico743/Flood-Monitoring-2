@@ -20,12 +20,12 @@ void sendDistance() {
     Serial2.readBytes(buffer, 4);
 
     if (buffer[0] == 0xFF) { // check header
-      int distance = ((buffer[1] << 8) + buffer[2]) / 10; // in cm
+      float distance = ((buffer[1] << 8) + buffer[2]) / 10.0; // in cm (float)
       uint8_t sum = (buffer[0] + buffer[1] + buffer[2]) & 0xFF;
 
       if (sum == buffer[3]) { // checksum valid
         Serial.print("Distance: ");
-        Serial.print(distance);
+        Serial.print(distance, 1); // print with 1 decimal place
         Serial.println(" cm");
 
         // Send to Blynk
@@ -40,7 +40,7 @@ void sendDistance() {
 void setup() {
   Serial.begin(9600);
   Serial2.begin(9600, SERIAL_8N1, RXD2, -1); // only RX
-c:\Users\Juanico\Codes\FloodMonitoring
+
   Serial.println("Connecting to WiFi...");
   Blynk.begin(BLYNK_AUTH_TOKEN, ssid, pass);
 
