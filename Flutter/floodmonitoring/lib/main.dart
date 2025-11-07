@@ -17,7 +17,7 @@ void main() async {
   );
 
   runApp(MaterialApp(
-    initialRoute: '/map',
+    initialRoute: '/',
     routes: {
       '/' : (context) => Dashboard(),
       '/map' : (context) => Map(),

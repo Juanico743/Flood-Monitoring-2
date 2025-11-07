@@ -1,7 +1,8 @@
-import 'dart:async';
-import 'dart:convert';
+import 'package:floodmonitoring/utils/style.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+
+import '../../utils/style.dart';
 
 class Dashboard extends StatefulWidget {
   const Dashboard({super.key});
@@ -11,150 +12,180 @@ class Dashboard extends StatefulWidget {
 }
 
 class _DashboardState extends State<Dashboard> {
-  double distance = 0.0;
-  Timer? timer;
-
-  // Replace with your actual Blynk Auth Token
-  final String blynkToken = "rDsIi--IkEDcdOVLSBXh2DvfusmwPSFc";
-
-  // Fetch distance value from Blynk Cloud
-  Future<void> fetchDistance() async {
-    try {
-      final url = Uri.parse(
-        'https://blynk.cloud/external/api/get?token=$blynkToken&pin=V0',
-      );
-
-      final response = await http.get(url);
-
-      if (response.statusCode == 200) {
-        // Try to parse the response body (which might be plain text or JSON)
-        final body = response.body.trim();
-        final newValue = double.tryParse(body);
-
-        if (newValue != null) {
-          setState(() {
-            distance = newValue;
-          });
-        } else {
-          print("Invalid data from Blynk: $body");
-        }
-      } else {
-        print("Failed to fetch data: ${response.statusCode}");
-      }
-    } catch (e) {
-      print("Error: $e");
-    }
-  }
-
-  void startDistanceUpdater() {
-    // Call fetchDistance every second
-    timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      fetchDistance();
-    });
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    startDistanceUpdater();
-  }
-
-  @override
-  void dispose() {
-    timer?.cancel();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text(
-              'Flood Level Monitor',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.deepOrange,
-              ),
-            ),
-            const SizedBox(height: 20),
-            Column(
+      body: Column(
+        children: [
+
+          //Header
+          Container(
+            color: Colors.red,
+            width: double.infinity,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Distance Measurement:',
-                  style: TextStyle(
-                    fontSize: 20,
-                    color: Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 10),
                 Text(
-                  '${distance.toStringAsFixed(2)} cm',
+                  'Greetings Vincent!!',
                   style: const TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.deepOrange,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
 
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                Text(
+                  'Stay alert, stay safe',
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          //Main
+
+          Container(
+            color: Colors.blue,
+            child: Row(
+              children: [
+                Column(
                   children: [
                     Text(
-                      'Location: '
-                    ),
-
-                    Text(
-                      'Ortigas Ave Sensor #1',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
+                      'Flood update\nto your zone',
+                      style: const TextStyle(
+                        fontSize: 24,
                       ),
                     ),
+                    
+                    Container(
+                      padding: EdgeInsets.symmetric(vertical: 5, horizontal: 15),
+                      decoration: BoxDecoration(
+                        color: color2,
+                        borderRadius: BorderRadius.all(
+                          Radius.circular(5),
+                        ),
+                      ),
+                      child:Text(
+                        'Open Map',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                        ),
+                      )
+                    ), // This is a Button
                   ],
                 ),
 
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                        'Last Update: '
-                    ),
+                //Image Part here
+              ],
+            ),
+          ),
 
-                    Text(
-                      '12:34 AM',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
 
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                        'Status: '
-                    ),
-
-                    Text(
-                      'Safe', //Safe/Warning/Danger
-                      style: TextStyle(
-                        color: Colors.green,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
+          // Related
+          
+          Container(
+            color: Colors.pink,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                Text(
+                  'Related',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
 
               ],
+            )
+          ),
+
+          //Weather Card
+          Container(
+            color: Colors.green,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                //Weather image
+
+                Column(
+                  children: [
+                    Text(
+                      'Weather',
+                      style: TextStyle(
+                        fontSize: 24,
+                      ),
+                    ),
+                    Text('[Current Time]'),
+                    Text('[Current Location]'),
+                  ],
+                ),
+                
+              ],
+            ),
+          ),
+
+
+          //Sliding Cards
+
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                miniCard(
+                  color: color2,
+                  title: 'Recent\nAlert',
+                  textColor: Colors.white,
+                ),
+                miniCard(
+                  color: color1,
+                  title: 'Flood\ntips',
+                  textColor: Colors.black,
+                ),
+                miniCard(
+                  color: color3,
+                  title: 'Rescue\nCall',
+                  textColor: Colors.black,
+                ),
+              ],
+            ),
+          ),
+
+        ],
+      ),
+    );
+  }
+
+  Widget miniCard({
+    required Color color,
+    required String title,
+    required Color textColor,
+  }) {
+    return Container(
+      padding: EdgeInsets.all(10),
+      width: 130,
+      height: 140,
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(15),
+      ),
+        child: Column(
+          children: [
+            Text(
+              title,
+              style: TextStyle(
+                color: textColor,
+                height: 1,
+                fontSize: 20,
+                fontWeight: FontWeight.w600
+              ),
             ),
           ],
-        ),
-      ),
+        )
     );
   }
 }
