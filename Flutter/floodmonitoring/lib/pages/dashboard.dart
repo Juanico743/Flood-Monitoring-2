@@ -50,7 +50,7 @@ class _DashboardState extends State<Dashboard> {
 
           SizedBox(height: 30),
 
-          //Header
+          ///Header
           Container(
             margin: EdgeInsets.symmetric(horizontal: 15),
             width: double.infinity,
@@ -79,7 +79,7 @@ class _DashboardState extends State<Dashboard> {
           SizedBox(height: 15),
 
 
-          //Main
+          ///Main
 
           Container(
             margin: EdgeInsets.symmetric(horizontal: 15),
@@ -162,7 +162,7 @@ class _DashboardState extends State<Dashboard> {
           SizedBox(height: 15),
 
 
-          // Related
+          /// Related
 
           
           Container(
@@ -184,7 +184,7 @@ class _DashboardState extends State<Dashboard> {
 
           SizedBox(height: 15),
 
-          //Weather Card
+          ///Weather Card
           Container(
             padding: EdgeInsets.all(15),
             margin: EdgeInsets.symmetric(horizontal: 15),
@@ -246,7 +246,7 @@ class _DashboardState extends State<Dashboard> {
           SizedBox(height: 15),
 
 
-          //Sliding Cards
+          ///Sliding Cards
 
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,

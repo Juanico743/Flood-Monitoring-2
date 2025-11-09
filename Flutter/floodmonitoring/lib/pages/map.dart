@@ -1,21 +1,44 @@
+import 'package:floodmonitoring/services/flood_level.dart';
+import 'package:floodmonitoring/utils/style.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:intl/intl.dart'; // for date formatting
+import 'package:intl/intl.dart';
 
-class Map extends StatefulWidget {
-  const Map({super.key});
+class MapScreen extends StatefulWidget {
+  const MapScreen({super.key});
 
   @override
-  State<Map> createState() => _MapState();
+  State<MapScreen> createState() => _MapScreenState();
 }
 
-class _MapState extends State<Map> {
+class _MapScreenState extends State<MapScreen> {
   late GoogleMapController mapController;
 
   // Example location (Antipolo)
   final LatLng _center = const LatLng(14.6255, 121.1245);
 
   final Set<Marker> _markers = {};
+
+  final blynk = BlynkService();
+  Map<String, dynamic> data = {
+    "distance": 0.0,
+    "status": "Loading...",
+    "lastUpdate": "00:00 AM"
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    fetchData();
+  }
+
+  Future<Map<String, dynamic>> fetchData() async {
+    final result = await blynk.fetchDistance();
+    setState(() {
+      data = result;
+    });
+    return result;
+  }
 
   void _onMapCreated(GoogleMapController controller) {
     mapController = controller;
@@ -26,13 +49,24 @@ class _MapState extends State<Map> {
           markerId: const MarkerId('sensor_01'),
           position: _center,
           icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
-          onTap: () {
+          onTap: () async {
+            // Wait for the latest data and store it
+            final currentData = await fetchData();
+
             _showSensorDetails(
               context,
               sensorId: '#01',
-              status: 'Safe',
-              statusColor: Colors.green,
-              lastUpdate: DateFormat('h:mma MMM d, yyyy').format(DateTime.now()),
+              distance: '${currentData['distance']}',
+              status: currentData['status'],
+              lastUpdate: currentData['lastUpdate'],
+              location: 'Ortigas Ave',
+              statusColor: currentData['status'] == 'Safe'
+                  ? color_safe
+                  : currentData['status'] == 'Warning'
+                  ? color_warning
+                  : currentData['status'] == 'Danger'
+                  ? color_danger
+                  : Colors.black,
             );
           },
         ),
@@ -43,9 +77,11 @@ class _MapState extends State<Map> {
   void _showSensorDetails(
       BuildContext context, {
         required String sensorId,
+        required String distance,
         required String status,
         required Color statusColor,
         required String lastUpdate,
+        required String location,
       }) {
     showModalBottomSheet(
       context: context,
@@ -77,6 +113,7 @@ class _MapState extends State<Map> {
               ),
               const SizedBox(height: 10),
               Text('Sensor ID: $sensorId', style: TextStyle(fontSize: 16)),
+              Text('Distance: ${distance}cm', style: TextStyle(fontSize: 16)),
               const SizedBox(height: 5),
               Row(
                 children: [
@@ -93,6 +130,8 @@ class _MapState extends State<Map> {
               ),
               const SizedBox(height: 5),
               Text('Last Update: $lastUpdate', style: TextStyle(fontSize: 16)),
+              const SizedBox(height: 5),
+              Text('Location: $location', style: TextStyle(fontSize: 16)),
               const SizedBox(height: 15),
               Center(
                 child: ElevatedButton(
@@ -103,8 +142,7 @@ class _MapState extends State<Map> {
                     ),
                   ),
                   onPressed: () {
-                    Navigator.pop(context);
-                    // TODO: Navigate to details page
+                    Navigator.pushNamed(context, '/info');
                   },
                   child: const Text('More Info'),
                 ),
