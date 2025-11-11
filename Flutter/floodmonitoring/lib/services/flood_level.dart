@@ -1,6 +1,31 @@
 import 'dart:convert';
+import 'package:floodmonitoring/services/global.dart';
 import 'package:floodmonitoring/services/time.dart';
 import 'package:http/http.dart' as http;
+
+
+
+
+final List<Map<String, dynamic>> vehicleFloodThresholds = [
+  {
+    "vehicle": "Motorcycle",
+    "safeRange_cm": [0.0, 20.0],       // safely passable
+    "warningRange_cm": [20.1, 50.0],   // water may touch lower parts
+    "dangerRange_cm": [50.1, double.infinity], // motorcycle can submerge
+  },
+  {
+    "vehicle": "Car",
+    "safeRange_cm": [0.0, 15.0],       // safely passable
+    "warningRange_cm": [15.1, 30.0],   // water may touch engine
+    "dangerRange_cm": [30.1, double.infinity], // car can be submerged
+  },
+  {
+    "vehicle": "Truck",
+    "safeRange_cm": [0.0, 40.0],       // safely passable
+    "warningRange_cm": [40.1, 60.0],   // water may reach lower chassis
+    "dangerRange_cm": [60.1, double.infinity], // truck can submerge
+  },
+];
 
 class BlynkService {
   final String blynkToken = "rDsIi--IkEDcdOVLSBXh2DvfusmwPSFc";
@@ -47,13 +72,23 @@ class BlynkService {
   }
 
   /// Determines the status based on distance value
-  String getStatusText(double value) {
-    if (value >= 175) {
+  String getStatusText(double distanceCm) {
+    final vehicleThreshold = vehicleFloodThresholds.firstWhere(
+          (v) => v["vehicle"] == selectedVehicle,
+      orElse: () => vehicleFloodThresholds[0], // fallback
+    );
+
+    if (distanceCm <= vehicleThreshold["safeRange_cm"][1]) {
       return 'Safe';
-    } else if (value >= 125 && value <= 174) {
+    } else if (distanceCm <= vehicleThreshold["warningRange_cm"][1]) {
       return 'Warning';
     } else {
       return 'Danger';
     }
   }
 }
+
+
+
+
+
