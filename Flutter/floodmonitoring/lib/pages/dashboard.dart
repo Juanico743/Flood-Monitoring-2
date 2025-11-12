@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:floodmonitoring/services/weather.dart';
 import 'package:floodmonitoring/utils/style.dart';
 import 'package:flutter/material.dart';
@@ -20,12 +22,33 @@ class _DashboardState extends State<Dashboard> {
   String description = '';
   String iconCode = '';
 
-  String currentTime = DateFormat('hh:mm a').format(DateTime.now());
+  String currentTime = '';
+  Timer? _timer;
 
   @override
   void initState() {
     super.initState();
     getWeather();
+    _updateTime();
+
+    _timer = Timer.periodic(Duration(seconds: 1), (timer) {
+      _updateTime();
+    });
+  }
+
+  void _updateTime() {
+    final now = DateTime.now();
+    final formattedTime = DateFormat('hh:mm a').format(now);
+
+    setState(() {
+      currentTime = formattedTime;
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
   }
 
 
@@ -124,6 +147,7 @@ class _DashboardState extends State<Dashboard> {
                           GestureDetector(
                             onTap: (){
                               Navigator.pushNamed(context, '/map');
+                              //Navigator.pushReplacementNamed(context, '/map');
                             },
                             child: Container(
                               padding: EdgeInsets.symmetric(vertical: 5, horizontal: 15),

@@ -7,6 +7,7 @@ const Color color3 = Color(0xFFCED1D6);
 
 ///Sub Color
 const Color color1_2 = Color(0xFFE85116);
+const Color color1_3 = Color(0xFFFFF0E7);
 const Color color3_2 = Color(0xFFE4E8EE);
 
 ///Status Color
