@@ -1,7 +1,11 @@
+import 'dart:math';
+
 import 'package:floodmonitoring/services/flood_level.dart';
 import 'package:floodmonitoring/services/global.dart';
+import 'package:floodmonitoring/services/location.dart';
 import 'package:floodmonitoring/utils/style.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import 'package:intl/intl.dart';
@@ -22,28 +26,10 @@ class _MapScreenState extends State<MapScreen> {
   final Set<Marker> _markers = {};
 
   final blynk = BlynkService();
-  Map<String, dynamic> sensorData = {
-    "distance": 0.0,
-    "status": "Loading...",
-    "lastUpdate": "00:00 AM"
-  };
-
-  @override
-  void initState() {
-    super.initState();
-    fetchData();
-  }
-
-  Future<Map<String, dynamic>> fetchData() async {
-    final result = await blynk.fetchDistance();
-    setState(() {
-      sensorData = result;
-    });
-    return result;
-  }
 
   Set<Circle> _circles = {};
 
+  CameraPosition? _lastPosition;
 
   bool showDirectionSheet = false;
   bool showSensorSheet = false;
@@ -63,87 +49,219 @@ class _MapScreenState extends State<MapScreen> {
   bool showCriticalSensors = false;
   bool showSensorLabels = true;
 
+  @override
+  void initState() {
+    super.initState();
+    fetchDataForAllSensors();
+    _loadCurrentLocation();
+  }
+
+  Future<void> _loadCurrentLocation() async {
+    Position? position = await LocationService.getCurrentLocation();
+    if (position != null) {
+      setState(() {
+        currentPosition = position;
+      });
+      _addUserMarker();
+    } else {
+      print('Could not get location.');
+    }
+  }
+
+
+
+
+  Map<String, Map<String, dynamic>> sensors = {
+    "sensor_01": {
+      "position": const LatLng(14.6255, 121.1245),
+      "token": "rDsIi--IkEDcdOVLSBXh2DvfusmwPSFc",
+      "data": {
+        "distance": 0.0,
+        "status": "Loading...",
+        "lastUpdate": "00:00 AM"
+      }
+    },
+  };
+
+  String? selectedSensorId;
+
+  ///Get Update For Specific Sensor
+  Future<void> fetchDataForSensor(String sensorId) async {
+    final sensor = sensors[sensorId];
+    if (sensor == null) return;
+
+    final token = sensor['token'];
+    final data = await BlynkService().fetchDistance(token);
+
+    // Update the sensor's data
+    setState(() {
+      sensors[sensorId]!['data'] = data;
+    });
+  }
+
+  ///Get Update For All Sensors
+  Future<void> fetchDataForAllSensors() async {
+    print("fetchDataForAllSensors");
+    // Create a list of futures for all sensors
+    List<Future<void>> futures = [];
+
+    sensors.forEach((sensorId, sensor) {
+      final token = sensor['token'];
+
+      // Add a future that fetches and updates this sensor
+      futures.add(BlynkService().fetchDistance(token).then((data) {
+        setState(() {
+          sensors[sensorId]!['data'] = data;
+        });
+      }));
+    });
+
+    await Future.wait(futures);
+  }
+
+
+
   void _onMapCreated(GoogleMapController controller) {
     mapController = controller;
 
     setState(() {
-      _markers.add(
-        Marker(
-          markerId: const MarkerId('sensor_01'),
-          position: _center,
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
-          onTap: () async {
-            // Fetch latest data
-            await fetchData();
+      _markers.clear(); // Optional: clear previous markers
+      sensors.forEach((id, sensor) {
+        _markers.add(
+          Marker(
+            markerId: MarkerId(id),
+            position: sensor['position'],
+            icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
+            onTap: () async {
+              await fetchDataForSensor(id); // fetch data for this specific sensor
 
-            setState(() {
-              showDirectionSheet = false;
-              showSensorSettingsSheet = false;
-              showSensorSheet = true;
-            });
+              setState(() {
+                selectedSensorId = id; // <-- track which sensor is selected
+                showDirectionSheet = false;
+                showSensorSettingsSheet = false;
+                showSensorSheet = true;
+              });
 
-            // Add a circle around this marker
-            setState(() {
-              _circles.clear(); // remove previous circle if needed
+              // Update circle for this sensor
+              _circles.removeWhere((c) => c.circleId.value.startsWith(id));
               _circles.add(
                 Circle(
-                  circleId: const CircleId('sensor_01_circle'),
-                  center: _center,
-                  radius: 200, // radius in meters
-                  strokeWidth: 2, // outline width
-                  strokeColor: sensorData['status'] == 'Safe'
-                      ? color_safe
-                      : sensorData['status'] == 'Warning'
-                      ? color_warning
-                      : sensorData['status'] == 'Danger'
-                      ? color_danger
-                      : Colors.black, // outline color
-                  fillColor: sensorData['status'] == 'Safe'
-                      ? color_safe.withOpacity(0.3)
-                      : sensorData['status'] == 'Warning'
-                      ? color_warning.withOpacity(0.3)
-                      : sensorData['status'] == 'Danger'
-                      ? color_danger.withOpacity(0.3)
-                      : Colors.black.withOpacity(0.3), // semi-transparent fill
+                  circleId: CircleId('${id}_circle'),
+                  center: sensor['position'],
+                  radius: 200,
+                  strokeWidth: 2,
+                  strokeColor: _getStatusColor(sensor['data']['status']),
+                  fillColor: _getStatusColor(sensor['data']['status']).withOpacity(0.3),
                 ),
               );
-            });
-          },
+            },
+          ),
+        );
+      });
+    });
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case "Safe":
+        return color_safe;
+      case "Warning":
+        return color_warning;
+      case "Danger":
+        return color_danger;
+      default:
+        return Colors.black;
+    }
+  }
+
+  /// Add Users Marker
+  void _addUserMarker() {
+    if (currentPosition == null) return;
+
+    final userLatLng = LatLng(currentPosition!.latitude, currentPosition!.longitude);
+
+    setState(() {
+      // Remove old user marker and circles
+      _markers.removeWhere((m) => m.markerId.value == 'user');
+      _circles.removeWhere((c) =>
+      c.circleId.value == 'user_small' || c.circleId.value == 'user_medium');
+
+      // Add user marker
+      _markers.add(
+        Marker(
+          markerId: const MarkerId('user'),
+          position: userLatLng,
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
+          infoWindow: const InfoWindow(title: 'Your Location'),
+        ),
+      );
+
+      // Small solid circle
+      _circles.add(
+        Circle(
+          circleId: const CircleId('user_small'),
+          center: userLatLng,
+          radius: 8, // small radius in meters
+          strokeWidth: 0,
+          fillColor: color1, // solid color
+        ),
+      );
+
+      // Medium semi-transparent circle
+      _circles.add(
+        Circle(
+          circleId: const CircleId('user_medium'),
+          center: userLatLng,
+          radius: 15, // medium radius in meters
+          strokeWidth: 0,
+          fillColor: color1.withOpacity(0.3), // semi-transparent
         ),
       );
     });
   }
 
 
-  /// Zoom and center to a specific location
-  void _zoomToCenter() {
-    mapController.animateCamera(
-      CameraUpdate.newCameraPosition(
-        CameraPosition(
-          target: _center,
-          zoom: 15.0, // desired zoom level
-        ),
-      ),
-    );
-  }
+  /// Locate user
+  void _goToUser() async {
+    if (currentPosition == null) return;
 
-  /// Reset map orientation (bearing & tilt)
-  void _resetOrientation() async {
-    final currentPos = await mapController.getLatLng(
-      ScreenCoordinate(x: 200, y: 400),
+    final userLatLng = LatLng(
+      currentPosition!.latitude,
+      currentPosition!.longitude,
     );
 
     mapController.animateCamera(
       CameraUpdate.newCameraPosition(
         CameraPosition(
-          target: currentPos,
-          zoom: await mapController.getZoomLevel(),
+          target: userLatLng,
+          zoom: 17, // set desired zoom level
           tilt: 0,
           bearing: 0,
         ),
       ),
     );
   }
+
+  /// Reset map orientation (bearing & tilt)
+  void _onCameraMove(CameraPosition position) {
+    _lastPosition = position;
+  }
+
+  void _resetOrientation() async {
+    if (_lastPosition == null) return;
+
+    mapController.animateCamera(
+      CameraUpdate.newCameraPosition(
+        CameraPosition(
+          target: _lastPosition!.target,
+          zoom: _lastPosition!.zoom,
+          tilt: 0,
+          bearing: 0,
+        ),
+      ),
+    );
+  }
+
 
 
   @override
@@ -154,11 +272,29 @@ class _MapScreenState extends State<MapScreen> {
         children: [
           // 🗺️ MAP
           GoogleMap(
-            onMapCreated: _onMapCreated,
+            onMapCreated: (controller) {
+              _onMapCreated(controller);
+
+              // Animate zoom after map is ready
+              if (currentPosition != null) {
+                controller.animateCamera(
+                  CameraUpdate.newCameraPosition(
+                    CameraPosition(
+                      target: LatLng(currentPosition!.latitude, currentPosition!.longitude),
+                      zoom: 17.0, // zoom to 17
+                    ),
+                  ),
+                );
+              }
+            },
+            onCameraMove: _onCameraMove,
             initialCameraPosition: CameraPosition(
-              target: _center,
-              zoom: 15.0,
+              target: currentPosition != null
+                  ? LatLng(currentPosition!.latitude, currentPosition!.longitude)
+                  : _center,
+              zoom: 15.0, // start at 15
             ),
+            mapType: MapType.normal,
             markers: _markers,
             circles: _circles,
             compassEnabled: false,
@@ -210,7 +346,7 @@ class _MapScreenState extends State<MapScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 GestureDetector(
-                  onTap: _zoomToCenter,
+                  onTap: _goToUser,
                   child: Container(
                     height: 40,
                     width: 40,
@@ -357,9 +493,12 @@ class _MapScreenState extends State<MapScreen> {
                                 ),
                                 const SizedBox(width: 8), // spacing between icon and text
                                 Expanded(
-                                  child: Text(
-                                    'Current Location',
-                                    style: TextStyle(fontSize: 16),
+                                  child: Container(
+                                    color: Colors.red,
+                                    child: Text(
+                                      'Current Location',
+                                      style: TextStyle(fontSize: 16),
+                                    ),
                                   ),
                                 ),
                               ],
@@ -486,7 +625,6 @@ class _MapScreenState extends State<MapScreen> {
                   setState(() {
                     showSensorSettingsSheet = false;
                     sensorSettingsDragOffset = 0;
-                    _circles.clear();
                   });
                 } else {
                   setState(() {
@@ -601,7 +739,7 @@ class _MapScreenState extends State<MapScreen> {
                   setState(() {
                     showSensorSheet = false;
                     sensorDragOffset = 0;
-                    _circles.clear();
+                    _circles.removeWhere((c) => c.circleId.value.startsWith('sensor'));
                   });
                 } else {
                   setState(() {
@@ -631,56 +769,59 @@ class _MapScreenState extends State<MapScreen> {
                       ),
 
                       // Title
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Sensor Details',
-                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 10),
-                          Text('Sensor ID: #01', style: TextStyle(fontSize: 16)),
-                          Text('Distance: ${sensorData['distance']}cm', style: TextStyle(fontSize: 16)),
-                          const SizedBox(height: 5),
-                          Row(
+                      Builder(
+                        builder: (contex) {
+
+                        final sensor = selectedSensorId != null ? sensors[selectedSensorId]! : null;
+                        final data = sensor?['data'];
+
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('Status: ', style: TextStyle(fontSize: 16)),
                               Text(
-                                sensorData['status'],
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: sensorData['status'] == 'Safe'
-                                      ? color_safe
-                                      : sensorData['status'] == 'Warning'
-                                      ? color_warning
-                                      : sensorData['status'] == 'Danger'
-                                      ? color_danger
-                                      : Colors.black,
+                                'Sensor Details',
+                                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                              ),
+                              const SizedBox(height: 10),
+
+                              Text('Sensor ID: ${selectedSensorId ?? "None"}', style: TextStyle(fontSize: 16)),
+                              Text('Distance: ${data?['distance'] ?? "-"}cm', style: TextStyle(fontSize: 16)),
+                              const SizedBox(height: 5),
+                              Row(
+                                children: [
+                                  const Text('Status: ', style: TextStyle(fontSize: 16)),
+                                  Text(
+                                    data?['status'] ?? "-",
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: _getStatusColor(data?['status'] ?? ""),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 5),
+                              Text('Last Update: ${data?['lastUpdate'] ?? "-"}', style: TextStyle(fontSize: 16)),
+                              const SizedBox(height: 5),
+                              Text('Location: Ortigas Ave', style: TextStyle(fontSize: 16)),
+                              const SizedBox(height: 15),
+                              Center(
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.blue,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                  ),
+                                  onPressed: () {
+                                    Navigator.pushNamed(context, '/info');
+                                  },
+                                  child: const Text('More Info'),
                                 ),
                               ),
                             ],
-                          ),
-                          const SizedBox(height: 5),
-                          Text('Last Update: ${sensorData['lastUpdate']}', style: TextStyle(fontSize: 16)),
-                          const SizedBox(height: 5),
-                          Text('Location: Ortigas Ave', style: TextStyle(fontSize: 16)),
-                          const SizedBox(height: 15),
-                          Center(
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.blue,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                              ),
-                              onPressed: () {
-                                Navigator.pushNamed(context, '/info');
-                              },
-                              child: const Text('More Info'),
-                            ),
-                          ),
-                        ],
+                          );
+                        }
                       ),
                     ],
                   ),
@@ -703,7 +844,7 @@ class _MapScreenState extends State<MapScreen> {
                       showDirectionSheet = !showDirectionSheet;
                     });
                     //_showDirectionDetails();
-                    _circles.clear();
+                    _circles.removeWhere((c) => c.circleId.value.startsWith('sensor'));
                   },
                   imagePath: 'assets/images/icons/pin.png',
                   iconColor: (showDirectionSheet) ? color1 : color2,
@@ -715,6 +856,7 @@ class _MapScreenState extends State<MapScreen> {
                       showDirectionSheet = false;
                       showSensorSettingsSheet = !showSensorSettingsSheet;
                     });
+                    _circles.removeWhere((c) => c.circleId.value.startsWith('sensor'));
                   },
                   imagePath: 'assets/images/icons/sensor.png',
                   iconColor: (showSensorSettingsSheet) ? color1 : color2,

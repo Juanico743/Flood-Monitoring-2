@@ -1,8 +1,11 @@
 import 'dart:async';
 
+import 'package:floodmonitoring/services/global.dart';
+import 'package:floodmonitoring/services/location.dart';
 import 'package:floodmonitoring/services/weather.dart';
 import 'package:floodmonitoring/utils/style.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 
 
@@ -15,9 +18,6 @@ class Dashboard extends StatefulWidget {
 
 class _DashboardState extends State<Dashboard> {
 
-  final double latitude = 14.6255;
-  final double longitude = 121.1245;
-
   String temperature = '';
   String description = '';
   String iconCode = '';
@@ -28,12 +28,24 @@ class _DashboardState extends State<Dashboard> {
   @override
   void initState() {
     super.initState();
-    getWeather();
     _updateTime();
+    _loadCurrentLocation();
 
     _timer = Timer.periodic(Duration(seconds: 1), (timer) {
       _updateTime();
     });
+  }
+
+  Future<void> _loadCurrentLocation() async {
+    Position? position = await LocationService.getCurrentLocation();
+    if (position != null) {
+      setState(() {
+        currentPosition = position;
+      });
+      getWeather();
+    } else {
+      print('Could not get location.');
+    }
   }
 
   void _updateTime() {
@@ -53,7 +65,7 @@ class _DashboardState extends State<Dashboard> {
 
 
   void getWeather() async {
-    final weather = await loadWeather(latitude, longitude);
+    final weather = await loadWeather(currentPosition!.latitude, currentPosition!.longitude);
 
     if (weather != null) {
       setState(() {
@@ -109,6 +121,14 @@ class _DashboardState extends State<Dashboard> {
             decoration: BoxDecoration(
               color: color1,
               borderRadius: BorderRadius.circular(15),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.15),
+                  spreadRadius: 1,
+                  blurRadius: 3,
+                  offset: const Offset(0, 0),
+                ),
+              ],
             ),
             child: Stack(
               children: [
@@ -213,7 +233,15 @@ class _DashboardState extends State<Dashboard> {
             padding: EdgeInsets.all(15),
             margin: EdgeInsets.symmetric(horizontal: 15),
             decoration: BoxDecoration(
-              color: color3_2,
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.15),
+                  spreadRadius: 1,
+                  blurRadius: 3,
+                  offset: const Offset(0, 0),
+                ),
+              ],
               borderRadius: BorderRadius.circular(15),
             ),
             child: Row(
@@ -324,6 +352,14 @@ class _DashboardState extends State<Dashboard> {
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(15),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.15),
+            spreadRadius: 1,
+            blurRadius: 3,
+            offset: const Offset(0, 0),
+          ),
+        ],
       ),
         child: Stack(
           children: [

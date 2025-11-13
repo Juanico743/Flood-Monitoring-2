@@ -28,14 +28,11 @@ final List<Map<String, dynamic>> vehicleFloodThresholds = [
 ];
 
 class BlynkService {
-  final String blynkToken = "rDsIi--IkEDcdOVLSBXh2DvfusmwPSFc";
-
-  /// Fetches the distance value from Blynk Cloud
-  /// Returns a map like: {"distance": 168.0, "status": "Warning"}
-  Future<Map<String, dynamic>> fetchDistance() async {
+  /// Fetches the distance value from Blynk Cloud for a given sensor token
+  Future<Map<String, dynamic>> fetchDistance(String token) async {
     try {
       final url = Uri.parse(
-        'https://blynk.cloud/external/api/get?token=$blynkToken&pin=V0',
+        'https://blynk.cloud/external/api/get?token=$token&pin=V0',
       );
 
       final response = await http.get(url);
@@ -48,12 +45,12 @@ class BlynkService {
           final status = getStatusText(newValue);
 
           // Include current time
-          final lastUpdate = getCurrentTime(); // from time.dart
+          final lastUpdate = getCurrentTime();
 
           return {
             "distance": newValue,
             "status": status,
-            "lastUpdate": lastUpdate,  // 👈 added here
+            "lastUpdate": lastUpdate,
           };
         } else {
           throw Exception("Invalid data format: $body");
@@ -66,10 +63,11 @@ class BlynkService {
       return {
         "distance": null,
         "status": "Error",
-        "lastUpdate": getCurrentTime(), // fallback time
+        "lastUpdate": getCurrentTime(),
       };
     }
   }
+
 
   /// Determines the status based on distance value
   String getStatusText(double distanceCm) {

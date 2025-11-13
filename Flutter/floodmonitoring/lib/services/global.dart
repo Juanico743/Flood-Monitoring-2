@@ -1,12 +1,15 @@
 
 
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 
 String serverUri = "http://192.168.1.8:8000";
 
 
 const String googleMapAPI = "AIzaSyC4O5JIbDyCnarQiUc0eQmhbQwel186NHw";
 
+
+Position? currentPosition;
 
 String selectedVehicle = "Motorcycle";
 
