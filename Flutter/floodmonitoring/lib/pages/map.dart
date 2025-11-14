@@ -35,8 +35,8 @@ class _MapScreenState extends State<MapScreen> {
   bool showSensorSheet = false;
   bool showSensorSettingsSheet = false;
 
-  double directionSheetHeight = 300;
-  double sensorSheetHeight = 350;
+  double directionSheetHeight = 350;
+  double sensorSheetHeight = 460;
   double sensorSettingsSheetHeight = 500;
 
   double directionDragOffset = 0;
@@ -458,82 +458,98 @@ class _MapScreenState extends State<MapScreen> {
                       ),
 
                       // Title
+
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.start,
                         children: [
-                          Text(
-                            'Directions',
-                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                          Icon(Icons.polyline_rounded, size: 32, color: Colors.deepOrange),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  "Directions",
+                                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                                ),
+                                Text(
+                                  "Select a vehicle and destination",
+                                  style: TextStyle(color: Colors.grey[600]),
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),
 
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 15),
 
                       Container(
-                        height: 100,
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(10), // optional padding inside container
+                        padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: color1_3,
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                         child: Column(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly, // space between rows
                           crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            // Current Location Row
-                            Row(
-                              children: [
-                                Image.asset(
-                                  'assets/images/icons/current.png',
-                                  width: 20,
-                                  height: 20,
-                                  fit: BoxFit.contain,
-                                ),
-                                const SizedBox(width: 8), // spacing between icon and text
-                                Expanded(
-                                  child: Container(
-                                    color: Colors.red,
-                                    child: Text(
-                                      'Current Location',
-                                      style: TextStyle(fontSize: 16),
+                            /// Current Location
+                            InkWell(
+                              onTap: () {
+                                print("Current Location clicked"); // if you want it clickable
+                              },
+                              child: Container(
+                                height: 50, // fixed height for consistency
+                                padding: const EdgeInsets.symmetric(horizontal: 4),
+                                child: Row(
+                                  children: [
+                                    Image.asset(
+                                      'assets/images/icons/current.png',
+                                      width: 22,
+                                      height: 22,
                                     ),
-                                  ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        "Current Location",
+                                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                                      ),
+                                    ),
+                                    Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+                                  ],
                                 ),
-                              ],
+                              ),
                             ),
 
-                            Row(
-                              children: [
-                                SizedBox(width: 30), // same as icon width + spacing
-                                Expanded(
-                                  child: Divider(
-                                    color: Colors.grey,
-                                    thickness: 1,
-                                    height: 1,
-                                  ),
-                                ),
-                              ],
-                            ),
+                            const Divider(height: 1, color: Colors.grey),
 
-                            // Select Destination Row
-                            Row(
-                              children: [
-                                Image.asset(
-                                  'assets/images/icons/destination.png',
-                                  width: 20,
-                                  height: 20,
-                                  fit: BoxFit.contain,
+                            /// Destination
+                            InkWell(
+                              onTap: () {
+                                print("Select Destination clicked");
+                                // Here you can open your selection dialog or page
+                              },
+                              child: Container(
+                                height: 50, // same height as upper row
+                                padding: const EdgeInsets.symmetric(horizontal: 4),
+                                child: Row(
+                                  children: [
+                                    Image.asset(
+                                      'assets/images/icons/destination.png',
+                                      width: 22,
+                                      height: 22,
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        "Select Destination", // selectedDestinationName ?? "Select Destination"
+                                        style: TextStyle(fontSize: 16),
+                                      ),
+                                    ),
+                                    Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+                                  ],
                                 ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    'Select Destination',
-                                    style: TextStyle(fontSize: 16),
-                                  ),
-                                ),
-                              ],
+                              ),
                             ),
                           ],
                         ),
@@ -653,17 +669,34 @@ class _MapScreenState extends State<MapScreen> {
                         ),
                       ),
 
+                      Row(
+                        children: [
+                          Icon(Icons.settings, size: 32, color: Colors.deepOrange),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  "Sensor Settings",
+                                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                                ),
+                                Text(
+                                  "Control sensor display options",
+                                  style: TextStyle(color: Colors.grey[600]),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 15),
+
                       // Title
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'Sensor Settings',
-                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 10),
-
-                          // Helper function to create a row with toggle
                           _sensorToggle(
                             title: 'Show All Sensors',
                             description: 'Display all sensors on the map',
@@ -750,80 +783,108 @@ class _MapScreenState extends State<MapScreen> {
               child: Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                  boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 10)],
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                  boxShadow: const [
+                    BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, -2)),
+                  ],
                 ),
                 child: Padding(
                   padding: const EdgeInsets.all(20),
-                  child: Column(
-                    children: [
-                      // Drag handle
-                      Container(
-                        width: 40,
-                        height: 5,
-                        margin: const EdgeInsets.only(bottom: 10),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[300],
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
+                  child: Builder(
+                    builder: (context) {
+                      final sensor = selectedSensorId != null ? sensors[selectedSensorId]! : null;
+                      final data = sensor?['data'];
 
-                      // Title
-                      Builder(
-                        builder: (contex) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
 
-                        final sensor = selectedSensorId != null ? sensors[selectedSensorId]! : null;
-                        final data = sensor?['data'];
+                          // ≡≡≡ DRAG HANDLE ≡≡≡
+                          Center(
+                            child: Container(
+                              width: 40,
+                              height: 5,
+                              decoration: BoxDecoration(
+                                color: Colors.grey[300],
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 15),
 
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                          // ≡≡≡ HEADER ≡≡≡
+                          Row(
                             children: [
-                              Text(
-                                'Sensor Details',
-                                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                              ),
-                              const SizedBox(height: 10),
-
-                              Text('Sensor ID: ${selectedSensorId ?? "None"}', style: TextStyle(fontSize: 16)),
-                              Text('Distance: ${data?['distance'] ?? "-"}cm', style: TextStyle(fontSize: 16)),
-                              const SizedBox(height: 5),
-                              Row(
-                                children: [
-                                  const Text('Status: ', style: TextStyle(fontSize: 16)),
-                                  Text(
-                                    data?['status'] ?? "-",
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: _getStatusColor(data?['status'] ?? ""),
+                              Icon(Icons.sensors, size: 32, color: Colors.deepOrange),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      "Sensor Details",
+                                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                                     ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 5),
-                              Text('Last Update: ${data?['lastUpdate'] ?? "-"}', style: TextStyle(fontSize: 16)),
-                              const SizedBox(height: 5),
-                              Text('Location: Ortigas Ave', style: TextStyle(fontSize: 16)),
-                              const SizedBox(height: 15),
-                              Center(
-                                child: ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.blue,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10),
+                                    Text(
+                                      "Tap for more information",
+                                      style: TextStyle(color: Colors.grey[600]),
                                     ),
-                                  ),
-                                  onPressed: () {
-                                    Navigator.pushNamed(context, '/info');
-                                  },
-                                  child: const Text('More Info'),
+                                  ],
                                 ),
                               ),
                             ],
-                          );
-                        }
-                      ),
-                    ],
+                          ),
+                          const SizedBox(height: 15),
+
+                          // ≡≡≡ INFO CARD ≡≡≡
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(14),
+                              boxShadow: const [
+                                BoxShadow(
+                                    color: Colors.black12, blurRadius: 6, offset: Offset(0, 2)),
+                              ],
+                            ),
+                            child: Column(
+                              children: [
+                                _infoRow("Sensor ID", selectedSensorId ?? "-"),
+                                _infoRow("Location", "Ortigas Ave"),
+                                _infoRow("Distance", "${data?['distance'] ?? "-"} cm"),
+                                _statusRow("Status", data?['status'] ?? "-", _getStatusColor(data?['status'] ?? "")),
+                                _infoRow("Last Update", data?['lastUpdate'] ?? "-"),
+                              ],
+                            ),
+                          ),
+
+                          const SizedBox(height: 20),
+
+                          // ≡≡≡ BUTTONS ≡≡≡
+                          Center(
+                            child: SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.deepOrange,
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                onPressed: () {
+                                  Navigator.pushNamed(context, '/info');
+                                },
+                                child: const Text(
+                                  "View Full Details",
+                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                 ),
               ),
@@ -968,25 +1029,85 @@ class _MapScreenState extends State<MapScreen> {
     required bool value,
     required ValueChanged<bool> onChanged,
   }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(child: Text(title, style: TextStyle(fontSize: 16))),
-              Switch(
-                value: value,
-                onChanged: onChanged,
-                activeColor: color1, // use your color1 when on
-              ),
-            ],
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 6,
+            offset: Offset(0, 3),
           ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  description,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          Switch(
+            value: value,
+            onChanged: onChanged,
+            activeColor: color1,  // your main app primary color
+          ),
+        ],
+      ),
+    );
+  }
+
+
+
+  Widget _infoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(fontSize: 16)),
+          Text(value,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        ],
+      ),
+    );
+  }
+
+  Widget _statusRow(String label, String value, Color color) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(fontSize: 16)),
           Text(
-            description,
-            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+            value,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+              color: color,
+            ),
           ),
         ],
       ),

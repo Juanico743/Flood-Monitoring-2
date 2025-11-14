@@ -1,6 +1,8 @@
 import 'package:floodmonitoring/pages/dashboard.dart';
+import 'package:floodmonitoring/pages/flood_tips.dart';
 import 'package:floodmonitoring/pages/info.dart';
 import 'package:floodmonitoring/pages/map.dart';
+import 'package:floodmonitoring/pages/recent_alert.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -23,6 +25,8 @@ void main() async {
       '/' : (context) => Dashboard(),
       '/map' : (context) => MapScreen(),
       '/info' : (context) => Info(),
+      '/recent-alert' : (context) => RecentAlert(),
+      '/flood-tips' : (context) => FloodTips(),
 
 
 

@@ -312,6 +312,9 @@ class _DashboardState extends State<Dashboard> {
                     textColor: Colors.white,
                     image: 'assets/images/warning.png',
                     opacity: 0.1,
+                    onTap: () {
+                      Navigator.pushNamed(context, '/recent-alert');
+                    },
                   ),
                   miniCard(
                     color: color1,
@@ -319,6 +322,9 @@ class _DashboardState extends State<Dashboard> {
                     textColor: Colors.black,
                     image: 'assets/images/water-damage.png',
                     opacity: 0.3,
+                    onTap: () {
+                      Navigator.pushNamed(context, '/flood-tips');
+                    },
                   ),
                   miniCard(
                     color: color3,
@@ -326,6 +332,7 @@ class _DashboardState extends State<Dashboard> {
                     textColor: Colors.black,
                     image: 'assets/images/siren-on.png',
                     opacity: 0.5,
+                    onTap: () {  },
                   ),
                 ],
               ),
@@ -344,55 +351,60 @@ class _DashboardState extends State<Dashboard> {
 
     required String image,
     required double opacity,
+
+    required VoidCallback onTap,
   }) {
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 5),
-      width: 120,
-      height: 130,
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.15),
-            spreadRadius: 1,
-            blurRadius: 3,
-            offset: const Offset(0, 0),
-          ),
-        ],
-      ),
-        child: Stack(
-          children: [
-            Positioned(
-              right: -10,
-              top: 0,
-              bottom: 0,
-              child: Opacity(
-                opacity: opacity,
-                child: Image.asset(
-                  image,
-                  width: 100,
-                  fit: BoxFit.contain,
-                ),
-              ),
-            ),
-
-
-            Positioned(
-              left: 15,
-              bottom: 15  ,
-              child: Text(
-                title,
-                style: TextStyle(
-                  color: textColor,
-                  height: 1,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600
-                ),
-              ),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: EdgeInsets.symmetric(horizontal: 5),
+        width: 120,
+        height: 130,
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(15),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.15),
+              spreadRadius: 1,
+              blurRadius: 3,
+              offset: const Offset(0, 0),
             ),
           ],
-        )
+        ),
+          child: Stack(
+            children: [
+              Positioned(
+                right: -10,
+                top: 0,
+                bottom: 0,
+                child: Opacity(
+                  opacity: opacity,
+                  child: Image.asset(
+                    image,
+                    width: 100,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              ),
+
+
+              Positioned(
+                left: 15,
+                bottom: 15  ,
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    color: textColor,
+                    height: 1,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600
+                  ),
+                ),
+              ),
+            ],
+          )
+      ),
     );
   }
 }
