@@ -296,6 +296,7 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
+  bool _isZoomedTilted = false;
   /// Reset map orientation (bearing & tilt)
   void _onCameraMove(CameraPosition position) {
     _lastPosition = position;
@@ -304,16 +305,45 @@ class _MapScreenState extends State<MapScreen> {
   void _resetOrientation() async {
     if (_lastPosition == null) return;
 
-    mapController.animateCamera(
+    // Step 1: Reset bearing to 0
+    await mapController.animateCamera(
       CameraUpdate.newCameraPosition(
         CameraPosition(
           target: _lastPosition!.target,
-          zoom: _lastPosition!.zoom,
-          tilt: 0,
-          bearing: 0,
+          zoom: _lastPosition!.zoom, // keep current zoom
+          tilt: 0, // reset tilt
+          bearing: 0, // reset orientation
         ),
       ),
     );
+
+    // Step 2: Apply zoom & tilt if toggled
+    if (!_isZoomedTilted) {
+      mapController.animateCamera(
+        CameraUpdate.newCameraPosition(
+          CameraPosition(
+            target: _lastPosition!.target,
+            zoom: 18,
+            tilt: 80,
+            bearing: 0,
+          ),
+        ),
+      );
+    } else {
+      // Optional: Reset zoom back to normal
+      mapController.animateCamera(
+        CameraUpdate.newCameraPosition(
+          CameraPosition(
+            target: _lastPosition!.target,
+            zoom: 17,
+            tilt: 0,
+            bearing: 0,
+          ),
+        ),
+      );
+    }
+
+    _isZoomedTilted = !_isZoomedTilted;
   }
 
 
@@ -395,64 +425,77 @@ class _MapScreenState extends State<MapScreen> {
           Positioned(
             top: 0,
             bottom: 0,
-            left: 10,
+            left: 5,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                GestureDetector(
-                  onTap: _goToUser,
-                  child: Container(
-                    height: 40,
-                    width: 40,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
+                ElevatedButton(
+                  onPressed: _goToUser,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    padding: EdgeInsets.zero,
+                    shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(50),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.15), // shadow color
-                          spreadRadius: 1, // how much it spreads
-                          blurRadius: 3,   // blur effect
-                          offset: const Offset(0, 0), // x, y offset
-                        ),
-                      ],
                     ),
-                    child: Center(
-                      child: Image.asset(
-                        'assets/images/icons/crosshair.png',
-                        width: 25,
-                        height: 25,
-                        fit: BoxFit.contain,
-                      ),
+                    elevation: 3,
+                    shadowColor: Colors.black.withOpacity(0.15),
+                    minimumSize: const Size(40, 40),
+                  ),
+                  child: Center(
+                    child: Image.asset(
+                      'assets/images/icons/crosshair.png',
+                      width: 25,
+                      height: 25,
+                      fit: BoxFit.contain,
                     ),
                   ),
                 ),
 
-                SizedBox(height: 10,),
 
-                GestureDetector(
-                  onTap: _resetOrientation,
-                  child: Container(
-                    height: 40,
-                    width: 40,
-                    decoration: BoxDecoration(
-                      color: color1,
-                      borderRadius: BorderRadius.circular(10),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.15), // shadow color
-                          spreadRadius: 1, // how much it spreads
-                          blurRadius: 3,   // blur effect
-                          offset: const Offset(0, 0), // x, y offset
-                        ),
-                      ],
+                ElevatedButton(
+                  onPressed: _resetOrientation,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    padding: EdgeInsets.zero,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(50),
                     ),
-                    child: Center(
-                      child: Image.asset(
-                        'assets/images/icons/compass.png',
-                        width: 25,
-                        height: 25,
-                        fit: BoxFit.contain,
-                      ),
+                    elevation: 3, // shadow
+                    shadowColor: Colors.black.withOpacity(0.15),
+                    minimumSize: const Size(40, 40), // button size
+                  ),
+                  child: Center(
+                    child: Image.asset(
+                      'assets/images/icons/compass.png',
+                      width: 25,
+                      height: 25,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
+
+
+
+                ElevatedButton(
+                  onPressed: () {
+                    /// TODO: Add function opening selecting direction
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: color1,
+                    padding: EdgeInsets.zero,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    elevation: 3,
+                    shadowColor: Colors.black.withOpacity(0.15),
+                    minimumSize: const Size(40, 40),
+                  ),
+                  child: Center(
+                    child: Image.asset(
+                      'assets/images/icons/direction.png',
+                      width: 25,
+                      height: 25,
+                      fit: BoxFit.contain,
                     ),
                   ),
                 ),
@@ -962,6 +1005,7 @@ class _MapScreenState extends State<MapScreen> {
                     //_showDirectionDetails();
                     _circles.removeWhere((c) => c.circleId.value.startsWith('sensor'));
                   },
+                  label: 'Directions',
                   imagePath: 'assets/images/icons/pin.png',
                   iconColor: (showDirectionSheet) ? color1 : color2,
                 ),
@@ -974,11 +1018,13 @@ class _MapScreenState extends State<MapScreen> {
                     });
                     _circles.removeWhere((c) => c.circleId.value.startsWith('sensor'));
                   },
+                  label: 'Sensor',
                   imagePath: 'assets/images/icons/sensor.png',
                   iconColor: (showSensorSettingsSheet) ? color1 : color2,
                 ),
                 bottomButton(
                   onTap: () => print("👤 Account pressed"),
+                  label: 'Alerts',
                   imagePath: 'assets/images/icons/exclamation.png',
                 ),
               ],
@@ -1020,8 +1066,9 @@ class _MapScreenState extends State<MapScreen> {
 
   Widget bottomButton({
     required VoidCallback onTap,
-    required String imagePath, // changed from IconData to image path
-    Color iconColor = color2, // optional
+    required String imagePath,
+    required String label,
+    Color iconColor = color2,
   }) {
     return Expanded(
       child: ElevatedButton(
@@ -1029,16 +1076,30 @@ class _MapScreenState extends State<MapScreen> {
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.white,
           foregroundColor: Colors.black,
-          minimumSize: const Size.fromHeight(60), // button height
-          shape: const RoundedRectangleBorder(), // no rounded corners
+          minimumSize: const Size.fromHeight(60),
+          shape: const RoundedRectangleBorder(),
         ),
-        child: Image.asset(
-          imagePath,
-          width: 25,
-          height: 25,
-          fit: BoxFit.contain,
-          color: iconColor,
-          colorBlendMode: BlendMode.srcIn,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Image.asset(
+              imagePath,
+              width: 25,
+              height: 25,
+              fit: BoxFit.contain,
+              color: iconColor,
+              colorBlendMode: BlendMode.srcIn,
+            ),
+            const SizedBox(height: 2), // spacing between icon and text
+            Text(
+              label,
+              style: TextStyle( // remove const here
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: iconColor, // now works
+              ),
+            ),
+          ],
         ),
       ),
     );

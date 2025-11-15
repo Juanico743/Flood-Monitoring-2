@@ -93,7 +93,7 @@ class _DashboardState extends State<Dashboard> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Greetings Vincent!!',
+                  'Let’s get moving!',
                   style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.w600,
@@ -338,7 +338,9 @@ class _DashboardState extends State<Dashboard> {
                     textColor: Colors.black,
                     image: 'assets/images/siren-on.png',
                     opacity: 0.5,
-                    onTap: () {  },
+                    onTap: () {
+                      Navigator.pushNamed(context, '/rescue-call');
+                    },
                   ),
                 ],
               ),
