@@ -24,6 +24,7 @@ Future<Map<String, dynamic>?> loadWeather(double latitude, double longitude) asy
             .map((word) => word[0].toUpperCase() + word.substring(1))
             .join(' '),
         "iconCode": response['weather'][0]['icon'].replaceAll(RegExp(r'[a-zA-Z]'), ''),
+        "pressure": response['main']['pressure'],
       };
     } else {
       print('Failed to fetch weather: ${res.statusCode}');

@@ -38,7 +38,7 @@ class _RecentAlertState extends State<RecentAlert> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Recent Alerts"),
-        backgroundColor: Colors.deepOrange,
+        backgroundColor: color1,
       ),
       backgroundColor: Colors.white,
       body: Padding(

@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'package:floodmonitoring/services/weather.dart';
 import 'package:flutter/material.dart';
 import 'package:floodmonitoring/services/flood_level.dart';
 import 'package:floodmonitoring/utils/style.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class Info extends StatefulWidget {
   const Info({super.key});
@@ -13,20 +15,36 @@ class Info extends StatefulWidget {
 class _InfoState extends State<Info> {
   final blynk = BlynkService();
 
-  Map<String, dynamic> data = {
-    "distance": 0.0,
-    "status": "Loading...",
-    "lastUpdate": "00:00 AM",
+  Map<String, Map<String, dynamic>> sensors = {
+    "sensor_01": {
+      "position": const LatLng(14.6255, 121.1245),
+      "token": "rDsIi--IkEDcdOVLSBXh2DvfusmwPSFc",
+      "sensorData": {
+        "distance": 0.0,
+        "status": "Loading...",
+        "lastUpdate": "00:00 AM"
+      },
+      "weatherData": {
+
+        "temperature": 0.0,
+        "description": "Loading...",
+        "pressure": 0,
+      }
+    },
   };
+
+
+
 
   Timer? _timer;
 
   @override
   void initState() {
     super.initState();
-    fetchData();
+    fetchDataForSensor("sensor_01");
+    getWeather("sensor_01");
 
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) => fetchData());
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) => fetchDataForSensor("sensor_01"));
   }
 
   @override
@@ -35,11 +53,37 @@ class _InfoState extends State<Info> {
     super.dispose();
   }
 
-  void fetchData() async {
-    final result =
-    await blynk.fetchDistance('rDsIi--IkEDcdOVLSBXh2DvfusmwPSFc');
+  ///Get Update For Specific Sensor
+  Future<void> fetchDataForSensor(String sensorId) async {
+    final sensor = sensors[sensorId];
+    if (sensor == null) return;
 
-    setState(() => data = result);
+    final token = sensor['token'];
+    final data = await BlynkService().fetchDistance(token);
+
+    // Update the sensor's data
+    setState(() {
+      sensors[sensorId]!['sensorData'] = data;
+    });
+  }
+
+  ///Get Data for Weather Update
+  Future<void> getWeather(String sensorId) async {
+    final sensor = sensors[sensorId];
+    if (sensor == null) return;
+
+    final weather = await loadWeather(
+        sensor['position'].latitude, sensor['position'].longitude);
+
+    if (weather != null) {
+      setState(() {
+        sensor['weatherData'] = {
+          "temperature": weather['temperature'],
+          "description": weather['description'],
+          "pressure": weather['pressure'],
+        };
+      });
+    }
   }
 
   @override
@@ -47,7 +91,7 @@ class _InfoState extends State<Info> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Sensor Information"),
-        backgroundColor: Colors.deepOrange,
+        backgroundColor: color1,
       ),
 
       backgroundColor: Colors.white,
@@ -94,6 +138,20 @@ class _InfoState extends State<Info> {
   // UI WIDGETS
   // ----------------------------------------
 
+
+  IconData statusIcon(String status) {
+    switch (status.toLowerCase()) {
+      case 'safe':
+        return Icons.check_circle_rounded;
+      case 'warning':
+        return Icons.warning_amber_rounded;
+      case 'danger':
+        return Icons.dangerous_rounded;
+      default:
+        return Icons.help_outline_rounded;
+    }
+  }
+
   Widget _header() {
     return Row(
       children: [
@@ -113,14 +171,15 @@ class _InfoState extends State<Info> {
 
         // STATUS CHIP
         Container(
-          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+          padding: const EdgeInsets.all(5),
           decoration: BoxDecoration(
             color: dataStatusColor(),
             borderRadius: BorderRadius.circular(20),
           ),
-          child: Text(
-            data['status'],
-            style: const TextStyle(color: Colors.white),
+          child: Icon(
+            statusIcon(sensors["sensor_01"]!["sensorData"]['status']),
+            color: Colors.white,
+            size: 25,
           ),
         ),
       ],
@@ -128,7 +187,7 @@ class _InfoState extends State<Info> {
   }
 
   Color dataStatusColor() {
-    switch (data['status']) {
+    switch (sensors["sensor_01"]!["sensorData"]['status']) {
       case 'Safe':
         return color_safe;
       case 'Warning':
@@ -145,9 +204,9 @@ class _InfoState extends State<Info> {
       title: "Live Measurements",
       child: Column(
         children: [
-          _item("Distance to Water", "${data['distance']} cm"),
-          _item("Flood Status", data['status'], color: dataStatusColor()),
-          _item("Last Update", data['lastUpdate']),
+          _item("Distance to Water", "${sensors["sensor_01"]!["sensorData"]['distance']} cm"),
+          _item("Flood Status", sensors["sensor_01"]!["sensorData"]['status'], color: dataStatusColor()),
+          _item("Last Update", sensors["sensor_01"]!["sensorData"]['lastUpdate']),
         ],
       ),
     );
@@ -158,7 +217,7 @@ class _InfoState extends State<Info> {
       title: "Sensor Details",
       child: Column(
         children: [
-          _item("Location", "Ortigas Ave Sensor #1"),
+          _item("Location", "Ortigas Ave Sensor"),
           _item("Monitoring Radius", "20 meters"),
           _item("Battery Level", "85%"),
           _item("Connection", "Online"),
@@ -172,8 +231,9 @@ class _InfoState extends State<Info> {
       title: "Weather",
       child: Column(
         children: [
-          _item("Temperature", "28°C"),
-          _item("Condition", "Light Rain"),
+          _item("Temperature", "${sensors["sensor_01"]!["weatherData"]['temperature']}°C"),
+          _item("Condition", "${sensors["sensor_01"]!["weatherData"]['description']}"),
+          _item("Pressure", "${sensors["sensor_01"]!["weatherData"]['pressure']} hPa"),
         ],
       ),
     );

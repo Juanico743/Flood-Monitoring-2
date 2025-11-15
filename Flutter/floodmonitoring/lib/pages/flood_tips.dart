@@ -46,7 +46,7 @@ Trucks have higher clearance but are not immune to flood risks. Strong currents 
     return Scaffold(
       appBar: AppBar(
         title: const Text("Flood Safety Tips"),
-        backgroundColor: Colors.deepOrange,
+        backgroundColor: color1,
       ),
       backgroundColor: Colors.white,
       body: Column(
@@ -122,7 +122,7 @@ Trucks have higher clearance but are not immune to flood risks. Strong currents 
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.deepOrange : Colors.white,
+          color: isSelected ? color1 : Colors.white,
           borderRadius: BorderRadius.circular(40),
           boxShadow: isSelected
               ? [BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2))]

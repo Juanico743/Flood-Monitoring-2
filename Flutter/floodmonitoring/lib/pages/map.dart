@@ -37,7 +37,7 @@ class _MapScreenState extends State<MapScreen> {
 
   double directionSheetHeight = 350;
   double sensorSheetHeight = 460;
-  double sensorSettingsSheetHeight = 500;
+  double sensorSettingsSheetHeight = 520;
 
   double directionDragOffset = 0;
   double sensorDragOffset = 0;
@@ -45,9 +45,9 @@ class _MapScreenState extends State<MapScreen> {
 
 
   bool showAllSensors = true;
-  bool showSensorCoverage = false;
+  bool showSensorCoverage = true;
   bool showCriticalSensors = false;
-  bool showSensorLabels = true;
+  bool showSensorLabels = false;
 
   @override
   void initState() {
@@ -75,7 +75,7 @@ class _MapScreenState extends State<MapScreen> {
     "sensor_01": {
       "position": const LatLng(14.6255, 121.1245),
       "token": "rDsIi--IkEDcdOVLSBXh2DvfusmwPSFc",
-      "data": {
+      "sensorData": {
         "distance": 0.0,
         "status": "Loading...",
         "lastUpdate": "00:00 AM"
@@ -95,7 +95,7 @@ class _MapScreenState extends State<MapScreen> {
 
     // Update the sensor's data
     setState(() {
-      sensors[sensorId]!['data'] = data;
+      sensors[sensorId]!['sensorData'] = data;
     });
   }
 
@@ -111,7 +111,7 @@ class _MapScreenState extends State<MapScreen> {
       // Add a future that fetches and updates this sensor
       futures.add(BlynkService().fetchDistance(token).then((data) {
         setState(() {
-          sensors[sensorId]!['data'] = data;
+          sensors[sensorId]!['sensorData'] = data;
         });
       }));
     });
@@ -124,41 +124,74 @@ class _MapScreenState extends State<MapScreen> {
   void _onMapCreated(GoogleMapController controller) {
     mapController = controller;
 
-    setState(() {
+    setState(() async {
       _markers.clear(); // Optional: clear previous markers
+
+      // Load custom sensor marker image once
+      final BitmapDescriptor sensorIcon = await BitmapDescriptor.fromAssetImage(
+        const ImageConfiguration(size: Size(48, 48)), // size of your sensor image
+        'assets/images/sensor_location.png',
+      );
+
       sensors.forEach((id, sensor) {
         _markers.add(
           Marker(
             markerId: MarkerId(id),
             position: sensor['position'],
-            icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
-            onTap: () async {
-              await fetchDataForSensor(id); // fetch data for this specific sensor
-
-              setState(() {
-                selectedSensorId = id; // <-- track which sensor is selected
-                showDirectionSheet = false;
-                showSensorSettingsSheet = false;
-                showSensorSheet = true;
-              });
-
-              // Update circle for this sensor
-              _circles.removeWhere((c) => c.circleId.value.startsWith(id));
-              _circles.add(
-                Circle(
-                  circleId: CircleId('${id}_circle'),
-                  center: sensor['position'],
-                  radius: 200,
-                  strokeWidth: 2,
-                  strokeColor: _getStatusColor(sensor['data']['status']),
-                  fillColor: _getStatusColor(sensor['data']['status']).withOpacity(0.3),
-                ),
-              );
-            },
+            icon: sensorIcon, // <-- use custom sensor image
+            infoWindow: showSensorLabels ? InfoWindow(title: id) : InfoWindow.noText,
+            anchor: const Offset(0.5, 0.5),
+              onTap: () => _onSensorTap(id, sensor),
           ),
         );
       });
     });
+  }
+
+
+
+  LatLng _offsetPosition(LatLng original, double offsetInDegrees) {
+    return LatLng(original.latitude - offsetInDegrees, original.longitude);
+  }
+
+  ///Sensor Gets Tapped
+  Future<void> _onSensorTap(String id, Map<String, dynamic> sensor) async {
+    final LatLng sensorPos = sensor['position'];
+    final LatLng offsetTarget = _offsetPosition(sensorPos, 0.0090);
+
+    mapController.animateCamera(
+      CameraUpdate.newCameraPosition(
+        CameraPosition(
+          target: offsetTarget,
+          zoom: 15,
+        ),
+      ),
+    );
+
+    await fetchDataForSensor(id);
+
+    setState(() {
+      selectedSensorId = id;
+      showDirectionSheet = false;
+      showSensorSettingsSheet = false;
+      showSensorSheet = true;
+    });
+
+    // Update circle for the selected sensor
+    if (showSensorCoverage) {
+      _circles.removeWhere((c) => c.circleId.value.startsWith(id));
+      _circles.add(
+        Circle(
+          circleId: CircleId('${id}_circle'),
+          center: sensor['position'],
+          radius: 200,
+          strokeWidth: 2,
+          strokeColor: _getStatusColor(sensor['sensorData']['status']),
+          fillColor: _getStatusColor(sensor['sensorData']['status']).withOpacity(0.3),
+        ),
+      );
+    }
+
   }
 
   Color _getStatusColor(String status) {
@@ -175,48 +208,69 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   /// Add Users Marker
-  void _addUserMarker() {
+  void _addUserMarker() async {
     if (currentPosition == null) return;
 
-    final userLatLng = LatLng(currentPosition!.latitude, currentPosition!.longitude);
+    final userLatLng = LatLng(
+      currentPosition!.latitude,
+      currentPosition!.longitude,
+    );
+
+    // Load custom image as marker
+    final BitmapDescriptor userIcon = await BitmapDescriptor.fromAssetImage(
+      const ImageConfiguration(size: Size(48, 48)), // size of your pin
+      'assets/images/user_location.png',
+    );
 
     setState(() {
-      // Remove old user marker and circles
+      // Remove old user marker
       _markers.removeWhere((m) => m.markerId.value == 'user');
+
+      // Remove old circles (optional)
       _circles.removeWhere((c) =>
       c.circleId.value == 'user_small' || c.circleId.value == 'user_medium');
 
-      // Add user marker
+      // Add user marker with custom image
       _markers.add(
         Marker(
           markerId: const MarkerId('user'),
           position: userLatLng,
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
+          icon: userIcon, // <-- custom image
+          anchor: const Offset(0.5, 0.5),
           infoWindow: const InfoWindow(title: 'Your Location'),
         ),
       );
+    });
+  }
 
-      // Small solid circle
-      _circles.add(
-        Circle(
-          circleId: const CircleId('user_small'),
-          center: userLatLng,
-          radius: 8, // small radius in meters
-          strokeWidth: 0,
-          fillColor: color1, // solid color
-        ),
-      );
 
-      // Medium semi-transparent circle
-      _circles.add(
-        Circle(
-          circleId: const CircleId('user_medium'),
-          center: userLatLng,
-          radius: 15, // medium radius in meters
-          strokeWidth: 0,
-          fillColor: color1.withOpacity(0.3), // semi-transparent
-        ),
-      );
+
+  void _refreshSensorMarkers() async {
+    final BitmapDescriptor sensorIcon = await BitmapDescriptor.fromAssetImage(
+      const ImageConfiguration(size: Size(48, 48)),
+      'assets/images/sensor_location.png',
+    );
+
+    setState(() {
+      // Remove all sensors first
+      _markers.removeWhere((m) => sensors.containsKey(m.markerId.value));
+
+      // If showAllSensors == false → stop here (no markers added)
+      if (!showAllSensors) return;
+
+      // Otherwise add all sensors again
+      sensors.forEach((id, sensor) {
+        _markers.add(
+          Marker(
+            markerId: MarkerId(id),
+            position: sensor['position'],
+            icon: sensorIcon,
+            anchor: const Offset(0.5, 0.5),
+            infoWindow: showSensorLabels ? InfoWindow(title: id) : InfoWindow.noText,
+            onTap: () => _onSensorTap(id, sensor),
+          ),
+        );
+      });
     });
   }
 
@@ -703,10 +757,10 @@ class _MapScreenState extends State<MapScreen> {
                             value: showAllSensors,
                             onChanged: (val) {
                               setState(() {
-
                                 showAllSensors = val;
                                 print('showAllSensors:$showAllSensors');
                               });
+                              _refreshSensorMarkers();
                             },
                           ),
 
@@ -740,6 +794,7 @@ class _MapScreenState extends State<MapScreen> {
                               setState(() {
                                 showSensorLabels = val;
                               });
+                              _refreshSensorMarkers();
                             },
                           ),
                         ],
@@ -793,7 +848,7 @@ class _MapScreenState extends State<MapScreen> {
                   child: Builder(
                     builder: (context) {
                       final sensor = selectedSensorId != null ? sensors[selectedSensorId]! : null;
-                      final data = sensor?['data'];
+                      final data = sensor?['sensorData'];
 
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -866,7 +921,7 @@ class _MapScreenState extends State<MapScreen> {
                               width: double.infinity,
                               child: ElevatedButton(
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.deepOrange,
+                                  backgroundColor: color1,
                                   padding: const EdgeInsets.symmetric(vertical: 14),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
@@ -877,7 +932,7 @@ class _MapScreenState extends State<MapScreen> {
                                 },
                                 child: const Text(
                                   "View Full Details",
-                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
                                 ),
                               ),
                             ),

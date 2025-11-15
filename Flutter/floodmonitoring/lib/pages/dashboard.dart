@@ -247,50 +247,56 @@ class _DashboardState extends State<Dashboard> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
+                // Weather Icon
                 Column(
                   children: [
-                    if (iconCode != '')
+                    if (iconCode != null && iconCode.isNotEmpty)
                       Image.asset(
                         'assets/images/weather/$iconCode.png',
                         width: 100,
                         height: 100,
                         fit: BoxFit.contain,
+                      )
+                    else
+                      SizedBox(
+                        width: 100,
+                        height: 100,
+                        child: Center(
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
                       ),
-
                   ],
                 ),
 
-
+                // Weather Info
                 Column(
                   children: [
                     Text(
-                      currentTime,
+                      currentTime.isNotEmpty ? currentTime : '--:--',
                       style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
 
                     Text(
-                      '${temperature}°C',
+                      temperature != null ? '${temperature}°C' : '--°C',
                       style: TextStyle(
                         color: color1_2,
                         fontSize: 30,
-                        fontWeight: FontWeight.w700
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
 
                     Text(
-                      description,
+                      description.isNotEmpty ? description : 'Loading...',
                       style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-
                   ],
                 ),
-                
               ],
             ),
           ),
