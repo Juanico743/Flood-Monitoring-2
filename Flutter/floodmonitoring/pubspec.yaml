@@ -35,6 +35,8 @@ dependencies:
   intl: ^0.20.2
   geolocator: ^14.0.2
   url_launcher: ^6.3.2
+  delightful_toast: ^1.1.0
+  flexible_polyline_dart: ^1.0.0
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.

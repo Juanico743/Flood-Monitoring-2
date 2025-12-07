@@ -79,275 +79,287 @@ class _DashboardState extends State<Dashboard> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: Column(
-        children: [
-
-          SizedBox(height: 30),
-
-          ///Header
-          Container(
-            margin: EdgeInsets.symmetric(horizontal: 15),
-            width: double.infinity,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Let’s get moving!',
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-
-                Text(
-                  'Stay alert, stay safe',
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFFCDE6FF),
+              Color(0xFFFFFFFF),
+              Color(0xFFCDE6FF),
+            ],
           ),
+        ),
+        child: Column(
+          children: [
 
-          SizedBox(height: 15),
+            SizedBox(height: 30),
 
-
-          ///Main
-
-          Container(
-            margin: EdgeInsets.symmetric(horizontal: 15),
-            decoration: BoxDecoration(
-              color: color1,
-              borderRadius: BorderRadius.circular(15),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.15),
-                  spreadRadius: 1,
-                  blurRadius: 3,
-                  offset: const Offset(0, 0),
-                ),
-              ],
-            ),
-            child: Stack(
-              children: [
-                Positioned(
-                  right: 0,
-                  child: Container(
-                    height: 140,
-                    width: 180,
-                    decoration: BoxDecoration(
-                      color: color1_2,
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(300),
-                        topRight: Radius.circular(40),
-                        bottomLeft: Radius.circular(0),
-                        bottomRight: Radius.circular(40),
-                      ),
-                    ),
-                  ),
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    Container(
-                      //padding: EdgeInsets.all(15),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Flood update\nto your zone',
-                            style: const TextStyle(
-                              fontSize: 24,
-                            ),
-                          ),
-                          SizedBox(height: 10),
-
-                          GestureDetector(
-                            onTap: (){
-                              Navigator.pushNamed(context, '/map');
-                              //Navigator.pushReplacementNamed(context, '/map');
-                            },
-                            child: Container(
-                              padding: EdgeInsets.symmetric(vertical: 5, horizontal: 15),
-                              decoration: BoxDecoration(
-                                color: color2,
-                                borderRadius: BorderRadius.all(
-                                  Radius.circular(5),
-                                ),
-                              ),
-                              child:Text(
-                                'Open Map',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 15,
-                                ),
-                              )
-                            ),
-                          ), // This is a Button
-                        ],
-                      ),
-                    ),
-
-                    Image.asset(
-                      'assets/images/Flood-amico.png',
-                      width: 140,
-                      height: 140,
-                      fit: BoxFit.cover,
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-
-
-          SizedBox(height: 15),
-
-
-          /// Related
-
-          
-          Container(
-            margin: EdgeInsets.symmetric(horizontal: 15),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                Text(
-                  'Related',
-                  style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600
-                  ),
-                ),
-
-              ],
-            )
-          ),
-
-          SizedBox(height: 15),
-
-          ///Weather Card
-          Container(
-            padding: EdgeInsets.all(15),
-            margin: EdgeInsets.symmetric(horizontal: 15),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.15),
-                  spreadRadius: 1,
-                  blurRadius: 3,
-                  offset: const Offset(0, 0),
-                ),
-              ],
-              borderRadius: BorderRadius.circular(15),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                // Weather Icon
-                Column(
-                  children: [
-                    if (iconCode != null && iconCode.isNotEmpty)
-                      Image.asset(
-                        'assets/images/weather/$iconCode.png',
-                        width: 100,
-                        height: 100,
-                        fit: BoxFit.contain,
-                      )
-                    else
-                      SizedBox(
-                        width: 100,
-                        height: 100,
-                        child: Center(
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                      ),
-                  ],
-                ),
-
-                // Weather Info
-                Column(
-                  children: [
-                    Text(
-                      currentTime.isNotEmpty ? currentTime : '--:--',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-
-                    Text(
-                      temperature != null ? '${temperature}°C' : '--°C',
-                      style: TextStyle(
-                        color: color1_2,
-                        fontSize: 30,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-
-                    Text(
-                      description.isNotEmpty ? description : 'Loading...',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-
-          SizedBox(height: 15),
-
-
-          ///Sliding Cards
-
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Container(
-              margin: EdgeInsets.symmetric(horizontal: 10),
-              child: Row(
+            ///Header
+            Container(
+              margin: EdgeInsets.symmetric(horizontal: 15),
+              width: double.infinity,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  miniCard(
-                    color: color2,
-                    title: 'Recent\nAlert',
-                    textColor: Colors.white,
-                    image: 'assets/images/warning.png',
-                    opacity: 0.1,
-                    onTap: () {
-                      Navigator.pushNamed(context, '/recent-alert');
-                    },
+                  Text(
+                    'Let’s get moving!',
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                  miniCard(
-                    color: color1,
-                    title: 'Flood\ntips',
-                    textColor: Colors.black,
-                    image: 'assets/images/water-damage.png',
-                    opacity: 0.3,
-                    onTap: () {
-                      Navigator.pushNamed(context, '/flood-tips');
-                    },
-                  ),
-                  miniCard(
-                    color: color3,
-                    title: 'Rescue\nCall',
-                    textColor: Colors.black,
-                    image: 'assets/images/siren-on.png',
-                    opacity: 0.5,
-                    onTap: () {
-                      Navigator.pushNamed(context, '/rescue-call');
-                    },
+
+                  Text(
+                    'Stay alert, stay safe',
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ],
               ),
             ),
-          ),
 
-        ],
+            SizedBox(height: 15),
+
+
+            ///Main
+
+            Container(
+              margin: EdgeInsets.symmetric(horizontal: 15),
+              decoration: BoxDecoration(
+                color: color1,
+                borderRadius: BorderRadius.circular(15),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.15),
+                    spreadRadius: 1,
+                    blurRadius: 3,
+                    offset: const Offset(0, 0),
+                  ),
+                ],
+              ),
+              child: Stack(
+                children: [
+                  Positioned(
+                    right: 0,
+                    child: Container(
+                      height: 140,
+                      width: 180,
+                      decoration: BoxDecoration(
+                        color: color1,
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(300),
+                          topRight: Radius.circular(40),
+                          bottomLeft: Radius.circular(0),
+                          bottomRight: Radius.circular(40),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      Container(
+                        //padding: EdgeInsets.all(15),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Flood update\nto your zone',
+                              style: const TextStyle(
+                                fontSize: 24,
+                              ),
+                            ),
+                            SizedBox(height: 10),
+
+                            GestureDetector(
+                              onTap: (){
+                                Navigator.pushNamed(context, '/map');
+                                //Navigator.pushReplacementNamed(context, '/map');
+                              },
+                              child: Container(
+                                padding: EdgeInsets.symmetric(vertical: 5, horizontal: 15),
+                                decoration: BoxDecoration(
+                                  color: color2,
+                                  borderRadius: BorderRadius.all(
+                                    Radius.circular(5),
+                                  ),
+                                ),
+                                child:Text(
+                                  'Open Map',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 15,
+                                  ),
+                                )
+                              ),
+                            ), // This is a Button
+                          ],
+                        ),
+                      ),
+
+                      Image.asset(
+                        'assets/images/Flood-amico.png',
+                        width: 140,
+                        height: 140,
+                        fit: BoxFit.cover,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+
+            SizedBox(height: 15),
+
+
+            /// Related
+
+
+            Container(
+              margin: EdgeInsets.symmetric(horizontal: 15),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  Text(
+                    'Related',
+                    style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600
+                    ),
+                  ),
+
+                ],
+              )
+            ),
+
+            SizedBox(height: 15),
+
+            ///Weather Card
+            Container(
+              padding: EdgeInsets.all(15),
+              margin: EdgeInsets.symmetric(horizontal: 15),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.15),
+                    spreadRadius: 1,
+                    blurRadius: 3,
+                    offset: const Offset(0, 0),
+                  ),
+                ],
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  // Weather Icon
+                  Column(
+                    children: [
+                      if (iconCode != null && iconCode.isNotEmpty)
+                        Image.asset(
+                          'assets/images/weather/$iconCode.png',
+                          width: 100,
+                          height: 100,
+                          fit: BoxFit.contain,
+                        )
+                      else
+                        SizedBox(
+                          width: 100,
+                          height: 100,
+                          child: Center(
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        ),
+                    ],
+                  ),
+
+                  // Weather Info
+                  Column(
+                    children: [
+                      Text(
+                        currentTime.isNotEmpty ? currentTime : '--:--',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+
+                      Text(
+                        temperature != null ? '${temperature}°C' : '--°C',
+                        style: TextStyle(
+                          color: color1,
+                          fontSize: 30,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+
+                      Text(
+                        description.isNotEmpty ? description : 'Loading...',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            SizedBox(height: 15),
+
+
+            ///Sliding Cards
+
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Container(
+                margin: EdgeInsets.symmetric(horizontal: 10),
+                child: Row(
+                  children: [
+                    miniCard(
+                      color: color2,
+                      title: 'Recent\nAlert',
+                      textColor: Colors.white,
+                      image: 'assets/images/warning.png',
+                      opacity: 0.1,
+                      onTap: () {
+                        Navigator.pushNamed(context, '/recent-alert');
+                      },
+                    ),
+                    miniCard(
+                      color: color1,
+                      title: 'Flood\ntips',
+                      textColor: Colors.black,
+                      image: 'assets/images/water-damage.png',
+                      opacity: 0.3,
+                      onTap: () {
+                        Navigator.pushNamed(context, '/flood-tips');
+                      },
+                    ),
+                    miniCard(
+                      color: color3,
+                      title: 'Rescue\nCall',
+                      textColor: Colors.black,
+                      image: 'assets/images/siren-on.png',
+                      opacity: 0.5,
+                      onTap: () {
+                        Navigator.pushNamed(context, '/rescue-call');
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+          ],
+        ),
       ),
     );
   }

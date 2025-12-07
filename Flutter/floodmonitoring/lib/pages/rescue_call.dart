@@ -57,6 +57,10 @@ class _RescueCallState extends State<RescueCall> {
     );
   }
 
+  // ----------------------------------------
+  // UI WIDGETS
+  // ----------------------------------------
+
   Widget _header() {
     return Row(
       children: [

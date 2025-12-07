@@ -6,7 +6,10 @@ import 'package:geolocator/geolocator.dart';
 String serverUri = "http://192.168.1.8:8000";
 
 
-const String googleMapAPI = "AIzaSyC4O5JIbDyCnarQiUc0eQmhbQwel186NHw";
+const String googleMapAPI = "AIzaSyAMamxCz-N-wiGSq4-DfVpD9zOpP_GZ_9o";
+
+const hereAPIKey = "lDESSEtXqqRgEcvHK6IIvID7oKO5yR5AJh2Et7ADPAI";
+const String mapboxAPI = "pk.eyJ1IjoidmluY2VudGplcnJ5anVhbmljbyIsImEiOiJjbWlyanl6MDMwMmRuM2NzZnAzZWRtMGRzIn0.8zbipe-6rXc1C5u0fP15aQ";
 
 
 Position? currentPosition;

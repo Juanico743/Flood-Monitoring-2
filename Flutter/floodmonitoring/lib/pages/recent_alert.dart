@@ -1,5 +1,52 @@
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart'; // kept because your sensor map uses LatLng
 import 'package:floodmonitoring/utils/style.dart';
+
+// Your sensor map
+Map<String, Map<String, dynamic>> sensors = {
+  "Sensor 01": {
+    "position": const LatLng(14.6255, 121.1245),
+    "token": "rDsIi--IkEDcdOVLSBXh2DvfusmwPSFc",
+    "sensorData": {
+      "distance": 18.0,
+      "status": "Warning", // Safe / Warning / Danger
+      "lastUpdate": "12:00 PM"
+    },
+    "weatherData": {
+      "temperature": 28.0,
+      "description": "Cloudy",
+      "pressure": 1005,
+    }
+  },
+  "Sensor 02": {
+    "position": const LatLng(14.6001, 121.0982),
+    "token": "abc123",
+    "sensorData": {
+      "distance": 30.0,
+      "status": "Danger",
+      "lastUpdate": "1:00 PM"
+    },
+    "weatherData": {
+      "temperature": 29.0,
+      "description": "Rain",
+      "pressure": 1007,
+    }
+  },
+  "Sensor 03": {
+    "position": const LatLng(14.5801, 121.1001),
+    "token": "xyz987",
+    "sensorData": {
+      "distance": 5.0,
+      "status": "Safe",
+      "lastUpdate": "12:45 PM"
+    },
+    "weatherData": {
+      "temperature": 27.0,
+      "description": "Clear",
+      "pressure": 1008,
+    }
+  },
+};
 
 class RecentAlert extends StatefulWidget {
   const RecentAlert({super.key});
@@ -9,30 +56,26 @@ class RecentAlert extends StatefulWidget {
 }
 
 class _RecentAlertState extends State<RecentAlert> {
-  // Sample alert data
-  final List<Map<String, String>> alerts = [
-    {
-      "location": "Ortigas Ave Sensor #1",
-      "status": "Warning",
-      "level": "Flood Level: 18 cm",
-    },
-    {
-      "location": "Mandaluyong Sensor #2",
-      "status": "Danger",
-      "level": "Flood Level: 30 cm",
-    },
-    {
-      "location": "Cainta Sensor #3",
-      "status": "Safe",
-      "level": "Flood Level: 5 cm",
-    },
-  ];
-
   @override
   Widget build(BuildContext context) {
-    // Filter only Warning or Danger
+    // Convert SENSOR map → alert list
+    final List<Map<String, dynamic>> alerts = sensors.entries.map((e) {
+      final name = e.key;
+      final data = e.value;
+      final sensor = data["sensorData"];
+
+      return {
+        "location": name,
+        "status": sensor["status"],
+        "level": "Flood Level: ${sensor['distance']} cm",
+      };
+    }).toList();
+
+    // Filter Warning & Danger alerts
     final activeAlerts = alerts
-        .where((a) => a['status'] == 'Warning' || a['status'] == 'Danger')
+        .where((a) =>
+    a['status'] == 'Warning' ||
+        a['status'] == 'Danger')
         .toList();
 
     return Scaffold(
@@ -44,22 +87,21 @@ class _RecentAlertState extends State<RecentAlert> {
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: activeAlerts.isEmpty
-            ? Center(
+            ? const Center(
           child: Text(
             "No active alerts",
             style: TextStyle(fontSize: 16, color: Colors.black54),
           ),
         )
             : Column(
-          children: activeAlerts
-              .map((alert) => _alertCard(alert))
-              .toList(),
+          children:
+          activeAlerts.map((alert) => _alertCard(alert)).toList(),
         ),
       ),
     );
   }
 
-  Widget _alertCard(Map<String, String> alert) {
+  Widget _alertCard(Map<String, dynamic> alert) {
     Color statusColor;
     IconData statusIcon;
 
@@ -99,7 +141,8 @@ class _RecentAlertState extends State<RecentAlert> {
                         fontSize: 16, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 6),
                 Text(alert['level'] ?? "-",
-                    style: const TextStyle(fontSize: 14, color: Colors.black54)),
+                    style:
+                    const TextStyle(fontSize: 14, color: Colors.black54)),
               ],
             ),
           ),
