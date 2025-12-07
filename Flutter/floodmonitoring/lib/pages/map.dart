@@ -616,11 +616,19 @@ class _MapScreenState extends State<MapScreen> {
     for (int i = 0; i < avoidZones.length; i++) {
       final zone = avoidZones[i];
 
-      // ⚡ Explicit casts
       final center = zone["position"] as LatLng;
       final radius = zone["radius"] as double;
 
-      final points = _generateCirclePolygon(center, radius, 30);
+      // Convert radius in meters to approximate degrees
+      final delta = radius / 111000;
+
+      // Square corners (clockwise)
+      final topLeft = LatLng(center.latitude + delta, center.longitude - delta); // A
+      final topRight = LatLng(center.latitude + delta, center.longitude + delta); // B
+      final bottomRight = LatLng(center.latitude - delta, center.longitude + delta); // C
+      final bottomLeft = LatLng(center.latitude - delta, center.longitude - delta); // D
+
+      final points = [topLeft, topRight, bottomRight, bottomLeft, topLeft]; // close the polygon
 
       polygons.add(Polygon(
         polygonId: PolygonId("avoid_zone_$i"),
@@ -706,7 +714,7 @@ class _MapScreenState extends State<MapScreen> {
   ];
 
   void _drawRoute(LatLng start, LatLng end) async {
-    final route = await PolylineService.getRoute(start, end);
+    final route = await PolylineService.getRoute(start, end, avoidZones);
 
     setState(() {
       _polylines.clear();
