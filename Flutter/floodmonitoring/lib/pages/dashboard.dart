@@ -94,7 +94,7 @@ class _DashboardState extends State<Dashboard> {
         child: Column(
           children: [
 
-            SizedBox(height: 30),
+            SizedBox(height: 40),
 
             ///Header
             Container(
@@ -122,15 +122,23 @@ class _DashboardState extends State<Dashboard> {
               ),
             ),
 
-            SizedBox(height: 15),
+            SizedBox(height: 20),
 
 
             ///Main
 
             Container(
               margin: EdgeInsets.symmetric(horizontal: 15),
+              padding: EdgeInsets.symmetric(vertical: 5),
               decoration: BoxDecoration(
-                color: color1,
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    color1_3,
+                    color1,
+                  ],
+                ),
                 borderRadius: BorderRadius.circular(15),
                 boxShadow: [
                   BoxShadow(
@@ -141,80 +149,58 @@ class _DashboardState extends State<Dashboard> {
                   ),
                 ],
               ),
-              child: Stack(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  Positioned(
-                    right: 0,
-                    child: Container(
-                      height: 140,
-                      width: 180,
-                      decoration: BoxDecoration(
-                        color: color1,
-                        borderRadius: BorderRadius.only(
-                          topLeft: Radius.circular(300),
-                          topRight: Radius.circular(40),
-                          bottomLeft: Radius.circular(0),
-                          bottomRight: Radius.circular(40),
+                  Container(
+                    //padding: EdgeInsets.all(15),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Flood update\nto your zone',
+                          style: const TextStyle(
+                            fontSize: 24,
+                          ),
                         ),
-                      ),
+                        SizedBox(height: 10),
+
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pushNamed(context, '/map');
+                          },
+                          style: TextButton.styleFrom(
+                            backgroundColor: color2,
+                            padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 15),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(5),
+                            ),
+                          ),
+                          child: const Text(
+                            'Open Map',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                            ),
+                          ),
+                        ), // This is a Button
+                      ],
                     ),
                   ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      Container(
-                        //padding: EdgeInsets.all(15),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Flood update\nto your zone',
-                              style: const TextStyle(
-                                fontSize: 24,
-                              ),
-                            ),
-                            SizedBox(height: 10),
 
-                            GestureDetector(
-                              onTap: (){
-                                Navigator.pushNamed(context, '/map');
-                                //Navigator.pushReplacementNamed(context, '/map');
-                              },
-                              child: Container(
-                                padding: EdgeInsets.symmetric(vertical: 5, horizontal: 15),
-                                decoration: BoxDecoration(
-                                  color: color2,
-                                  borderRadius: BorderRadius.all(
-                                    Radius.circular(5),
-                                  ),
-                                ),
-                                child:Text(
-                                  'Open Map',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 15,
-                                  ),
-                                )
-                              ),
-                            ), // This is a Button
-                          ],
-                        ),
-                      ),
-
-                      Image.asset(
-                        'assets/images/Flood-amico.png',
-                        width: 140,
-                        height: 140,
-                        fit: BoxFit.cover,
-                      ),
-                    ],
+                  Image.asset(
+                    'assets/images/Flood-amico.png',
+                    width: 140,
+                    height: 140,
+                    fit: BoxFit.cover,
                   ),
                 ],
               ),
+
             ),
 
 
-            SizedBox(height: 15),
+            SizedBox(height: 20),
 
 
             /// Related
@@ -244,7 +230,14 @@ class _DashboardState extends State<Dashboard> {
               padding: EdgeInsets.all(15),
               margin: EdgeInsets.symmetric(horizontal: 15),
               decoration: BoxDecoration(
-                color: Colors.white,
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Colors.white,
+                    Colors.white70,
+                  ],
+                ),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.15),
@@ -261,7 +254,7 @@ class _DashboardState extends State<Dashboard> {
                   // Weather Icon
                   Column(
                     children: [
-                      if (iconCode != null && iconCode.isNotEmpty)
+                      if (iconCode.isNotEmpty)
                         Image.asset(
                           'assets/images/weather/$iconCode.png',
                           width: 100,
@@ -291,6 +284,7 @@ class _DashboardState extends State<Dashboard> {
                       ),
 
                       Text(
+                        // ignore: unnecessary_null_comparison
                         temperature != null ? '${temperature}°C' : '--°C',
                         style: TextStyle(
                           color: color1,

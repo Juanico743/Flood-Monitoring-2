@@ -6,11 +6,13 @@ import 'package:floodmonitoring/services/global.dart';
 import 'package:floodmonitoring/services/location.dart';
 import 'package:floodmonitoring/services/polyline.dart';
 import 'package:floodmonitoring/utils/style.dart';
+import 'package:floodmonitoring/widgets/search_popup.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:delightful_toast/delight_toast.dart';
 import 'package:delightful_toast/toast/components/toast_card.dart';
+import 'package:vibration/vibration.dart';
 
 import 'package:intl/intl.dart';
 
@@ -40,21 +42,25 @@ class _MapScreenState extends State<MapScreen> {
   bool showSensorSheet = false;
   bool showSensorSettingsSheet = false;
   bool showPinConfirmationSheet = false;
+  bool showRerouteConfirmationSheet = false;
 
   double directionSheetHeight = 0;
   double sensorSheetHeight = 0;
   double sensorSettingsSheetHeight = 0;
   double pinConfirmationSheetHeight = 0;
+  double rerouteConfirmationSheetHeight = 0;
 
   double directionDragOffset = 0;
   double sensorDragOffset = 0;
   double sensorSettingsDragOffset = 0;
   double pinConfirmationDragOffset = 0;
+  double rerouteConfirmationDragOffset = 0;
 
   final GlobalKey directionKey = GlobalKey();
   final GlobalKey sensorKey = GlobalKey();
   final GlobalKey sensorSettingsKey = GlobalKey();
   final GlobalKey pinConfirmKey = GlobalKey();
+  final GlobalKey rerouteConfirmKey = GlobalKey();
 
 
   bool showAllSensors = true;
@@ -65,6 +71,7 @@ class _MapScreenState extends State<MapScreen> {
 
   bool insideAlertZone = false;
   bool nearAlertZone = false;
+  bool normalRouting = true;
 
   @override
   void initState() {
@@ -79,7 +86,7 @@ class _MapScreenState extends State<MapScreen> {
 
       fetchDataForAllSensors();
       _loadCurrentLocation();
-      _drawAvoidZones();
+      //_drawAvoidZones();
       //startLocationUpdates();
     }
 
@@ -155,14 +162,49 @@ class _MapScreenState extends State<MapScreen> {
     if (near) {
       print("Position near restricted area!");
       setState(() {
-        nearAlertZone = true;
+        startAlert();
       });
     } else {
       print("Safe: Position far avoid zones.");
-      setState(() {
-        nearAlertZone = false;
+      stopAlert();
+    }
+  }
+
+  bool displayAlert = false;
+  Timer? _alertTimer;
+
+
+  void startAlert() {
+    if (!nearAlertZone) {
+      nearAlertZone = true;
+      showNearFloodAlertToast(context);
+      Vibration.vibrate(duration: 100, amplitude: 255);
+
+      // Blink alert
+      _alertTimer = Timer.periodic(const Duration(milliseconds: 500), (timer) {
+        if (!nearAlertZone) {
+          timer.cancel();
+        } else {
+          setState(() {
+            displayAlert = !displayAlert;
+          });
+        }
+      });
+
+      // Auto stop after 5 minutes
+      Future.delayed(const Duration(minutes: 5), () {
+        stopAlert();
       });
     }
+  }
+
+  void stopAlert() {
+    nearAlertZone = false;
+    _alertTimer?.cancel();
+    setState(() {
+      nearAlertZone = false;
+      displayAlert = false;
+    });
   }
 
 
@@ -170,7 +212,7 @@ class _MapScreenState extends State<MapScreen> {
 
   Map<String, Map<String, dynamic>> sensors = {
     "sensor_01": {
-      "position": const LatLng(14.586897322564798, 121.16926720422056),
+      "position": const LatLng(14.584075886106824, 121.17304186860613),
       "token": "rDsIi--IkEDcdOVLSBXh2DvfusmwPSFc",
       "sensorData": {
         "distance": 0.0,
@@ -289,7 +331,7 @@ class _MapScreenState extends State<MapScreen> {
         Circle(
           circleId: CircleId('${id}_circle'),
           center: sensor['position'],
-          radius: 200,
+          radius: 100,
           strokeWidth: 2,
           strokeColor: _getStatusColor(sensor['sensorData']['status']),
           fillColor: _getStatusColor(sensor['sensorData']['status']).withOpacity(0.3),
@@ -497,13 +539,20 @@ class _MapScreenState extends State<MapScreen> {
 
   LatLng? savedPinPosition;        // the CURRENT official pin
   Marker? savedPinMarker;          // marker for the official pin
+  Map<String, dynamic> savedPlace = {
+    "name": "",
+    "location": LatLng(0.0, 0.0),
+  };
 
   LatLng? tappedPosition;          // temporary pin when user taps on map
   Marker? tappedMarker;
+  Map<String, dynamic> currentPlace = {
+    "name": "",
+    "location": LatLng(0.0, 0.0),
+  };
 
   void _onMapTap(LatLng position) async {
-    //print("Tapped: ${position.latitude}, ${position.longitude}");
-    print("Tapped: ${savedPinPosition?.latitude}, ${savedPinPosition?.longitude}");
+    print("Saved Pin: ${savedPinPosition?.latitude}, ${savedPinPosition?.longitude}");
     print("User: ${currentPosition!.latitude}, ${currentPosition!.longitude}");
 
     final BitmapDescriptor pinIcon = await BitmapDescriptor.fromAssetImage(
@@ -523,6 +572,12 @@ class _MapScreenState extends State<MapScreen> {
         anchor: const Offset(0.5, 1.0),
       );
       _markers.add(tappedMarker!);
+
+      // Update currentPlace
+      currentPlace = {
+        "name": "",        // leave empty since user just tapped
+        "location": position,
+      };
       tappedPosition = position;
 
       // Show confirmation sheet
@@ -530,14 +585,14 @@ class _MapScreenState extends State<MapScreen> {
       showDirectionSheet = false;
       showSensorSheet = false;
       showSensorSettingsSheet = false;
+      showRerouteConfirmationSheet = false;
     });
 
     // Draw polyline from user to tapped pin
     if (currentPosition != null) {
       _drawRoute(
         LatLng(currentPosition!.latitude, currentPosition!.longitude),
-        //position,
-        savedPinPosition!,
+        position, // use the tapped location
       );
     }
 
@@ -585,9 +640,15 @@ class _MapScreenState extends State<MapScreen> {
       }
       tappedMarker = null;
       tappedPosition = null;
+
+      // Clear temporary/current place
+      currentPlace = {
+        "name": "",
+        "location": LatLng(0.0, 0.0),
+      };
     });
 
-    // Restore saved pin → draw route again
+    // Restore saved pin → draw route again if exists
     if (savedPinMarker != null && currentPosition != null) {
       _drawRoute(
         LatLng(currentPosition!.latitude, currentPosition!.longitude),
@@ -599,50 +660,48 @@ class _MapScreenState extends State<MapScreen> {
       });
     }
 
-    // Hide sheet
+    // Hide confirmation sheet and remove sensor circles
     setState(() {
       showPinConfirmationSheet = false;
-
-      // Optional: remove sensor circles
       _circles.removeWhere((c) => c.circleId.value.startsWith('sensor'));
     });
   }
 
 
-  Set<Polygon> _polygons = {};
-  void _drawAvoidZones() {
-    Set<Polygon> polygons = {};
-
-    for (int i = 0; i < avoidZones.length; i++) {
-      final zone = avoidZones[i];
-
-      final center = zone["position"] as LatLng;
-      final radius = zone["radius"] as double;
-
-      // Convert radius in meters to approximate degrees
-      final delta = radius / 111000;
-
-      // Square corners (clockwise)
-      final topLeft = LatLng(center.latitude + delta, center.longitude - delta); // A
-      final topRight = LatLng(center.latitude + delta, center.longitude + delta); // B
-      final bottomRight = LatLng(center.latitude - delta, center.longitude + delta); // C
-      final bottomLeft = LatLng(center.latitude - delta, center.longitude - delta); // D
-
-      final points = [topLeft, topRight, bottomRight, bottomLeft, topLeft]; // close the polygon
-
-      polygons.add(Polygon(
-        polygonId: PolygonId("avoid_zone_$i"),
-        points: points,
-        fillColor: Colors.red.withOpacity(0.3),
-        strokeColor: Colors.red,
-        strokeWidth: 2,
-      ));
-    }
-
-    setState(() {
-      _polygons = polygons;
-    });
-  }
+  // Set<Polygon> _polygons = {};
+  // void _drawAvoidZones() {
+  //   Set<Polygon> polygons = {};
+  //
+  //   for (int i = 0; i < avoidZones.length; i++) {
+  //     final zone = avoidZones[i];
+  //
+  //     final center = zone["position"] as LatLng;
+  //     final radius = zone["radius"] as double;
+  //
+  //     // Convert radius in meters to approximate degrees
+  //     final delta = radius / 111000;
+  //
+  //     // Square corners (clockwise)
+  //     final topLeft = LatLng(center.latitude + delta, center.longitude - delta); // A
+  //     final topRight = LatLng(center.latitude + delta, center.longitude + delta); // B
+  //     final bottomRight = LatLng(center.latitude - delta, center.longitude + delta); // C
+  //     final bottomLeft = LatLng(center.latitude - delta, center.longitude - delta); // D
+  //
+  //     final points = [topLeft, topRight, bottomRight, bottomLeft, topLeft]; // close the polygon
+  //
+  //     polygons.add(Polygon(
+  //       polygonId: PolygonId("avoid_zone_$i"),
+  //       points: points,
+  //       fillColor: Colors.red.withOpacity(0.3),
+  //       strokeColor: Colors.red,
+  //       strokeWidth: 2,
+  //     ));
+  //   }
+  //
+  //   setState(() {
+  //     _polygons = polygons;
+  //   });
+  // }
 
   bool isInsideAvoidZone(LatLng usersPosition, List<Map<String, dynamic>> avoidZones) {
     for (var zone in avoidZones) {
@@ -706,6 +765,8 @@ class _MapScreenState extends State<MapScreen> {
 
 
 
+
+
   final avoidZones = [
     {
       "position": LatLng(14.584075886106824, 121.17304186860613),
@@ -714,7 +775,12 @@ class _MapScreenState extends State<MapScreen> {
   ];
 
   void _drawRoute(LatLng start, LatLng end) async {
-    final route = await PolylineService.getRoute(start, end, avoidZones);
+    final route = await PolylineService.getRoute(
+      start,
+      end,
+      normalRouting: normalRouting,   // <--- TRUE = Google, FALSE = HERE
+      avoidZones: avoidZones,
+    );
 
     setState(() {
       _polylines.clear();
@@ -733,96 +799,215 @@ class _MapScreenState extends State<MapScreen> {
 
 
 
+
   void showVehicleModal() {
     showDialog(
       context: context,
-      barrierDismissible: false,
+      barrierDismissible: false, // still prevents tapping outside
       builder: (context) {
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
-          child: StatefulBuilder(
-            builder: (context, setState) {
-              return Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Colors.black26,
-                      blurRadius: 10,
-                      offset: Offset(0, 2),
-                    ),
-                  ],
-                ),
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Question + Description
-                    const Text(
-                      "Which vehicle will you use?",
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 6),
-                    const Text(
-                      "Select a vehicle from the options below before continuing.",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 14, color: Colors.grey),
-                    ),
-                    const SizedBox(height: 20),
+        return WillPopScope(
+          onWillPop: () async => false, // prevent back button
+          child: Dialog(
+            backgroundColor: Colors.transparent,
+            insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+            child: StatefulBuilder(
+              builder: (context, setState) {
+                return Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Colors.black26,
+                        blurRadius: 10,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        "Which vehicle will you use?",
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 6),
+                      const Text(
+                        "Select a vehicle from the options below before continuing.",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 14, color: Colors.grey),
+                      ),
+                      const SizedBox(height: 20),
 
-                    // Vehicle options
-                    vehicleTile("Motorcycle", "assets/images/icons/motorcycle.png", setState),
-                    const SizedBox(height: 10),
-                    vehicleTile("Car", "assets/images/icons/car.png", setState),
-                    const SizedBox(height: 10),
-                    vehicleTile("Truck", "assets/images/icons/truck.png", setState),
+                      // Vehicle options
+                      vehicleTile("Motorcycle", "assets/images/icons/motorcycle.png", setState),
+                      const SizedBox(height: 10),
+                      vehicleTile("Car", "assets/images/icons/car.png", setState),
+                      const SizedBox(height: 10),
+                      vehicleTile("Truck", "assets/images/icons/truck.png", setState),
 
-                    const SizedBox(height: 20),
+                      const SizedBox(height: 20),
 
-                    // Confirm button
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: color1 ,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                      // Confirm button
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: color1,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
-                        ),
-                        onPressed: () {
-                          if (selectedVehicle.isEmpty) {
-                            showVehicleErrorToast(context);
-                            return;
-                          }
-                          print("Selected Vehicle: $selectedVehicle");
-                          Navigator.of(context).pop();
-                        },
-                        child: const Text(
-                          "CONFIRM",
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                          onPressed: () {
+                            if (selectedVehicle.isEmpty) {
+                              showVehicleErrorToast(context);
+                              return;
+                            }
+                            print("Selected Vehicle: $selectedVehicle");
+                            Navigator.of(context).pop();
+                          },
+                          child: const Text(
+                            "CONFIRM",
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              );
-            },
+                    ],
+                  ),
+                );
+              },
+            ),
           ),
         );
       },
     );
   }
 
+  Future<void> openPlaceSearch() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => const PlaceSearchPopup(),
+      ),
+    );
+
+    if (result != null) {
+      final LatLng position = result['latLng'];
+      final String name = result['name'];
+
+      print('Selected place: $name');
+      print('Coordinates: ${position.latitude}, ${position.longitude}');
+
+      // Create pin icon
+      final BitmapDescriptor pinIcon = await BitmapDescriptor.fromAssetImage(
+        const ImageConfiguration(size: Size(48, 48)),
+        'assets/images/selected_location.png',
+      );
+
+      setState(() {
+        // Remove previous tapped marker
+        if (tappedMarker != null) _markers.remove(tappedMarker);
+
+        // Add new tapped marker
+        tappedMarker = Marker(
+          markerId: const MarkerId('tapped_pin'),
+          position: position,
+          icon: pinIcon,
+          anchor: const Offset(0.5, 1.0),
+        );
+        _markers.add(tappedMarker!);
+        tappedPosition = position;
+
+        // Set currentPlace (temporary)
+        currentPlace = {
+          "name": name,
+          "location": position,
+        };
+
+        // Show confirmation sheet
+        showPinConfirmationSheet = true;
+        showDirectionSheet = false;
+        showSensorSheet = false;
+        showSensorSettingsSheet = false;
+        showRerouteConfirmationSheet = false;
+      });
+
+      if (currentPosition != null) {
+        LatLng userPosition = LatLng(currentPosition!.latitude, currentPosition!.longitude);
+
+        // Draw polyline to temporary/current place
+        _drawRoute(userPosition, position);
+
+        // Zoom to fit both locations
+        LatLngBounds bounds = LatLngBounds(
+          southwest: LatLng(
+            min(userPosition.latitude, position.latitude),
+            min(userPosition.longitude, position.longitude),
+          ),
+          northeast: LatLng(
+            max(userPosition.latitude, position.latitude),
+            max(userPosition.longitude, position.longitude),
+          ),
+        );
+
+        mapController.animateCamera(CameraUpdate.newLatLngBounds(bounds, 100));
+      }
+    }
+  }
+
+
 // Vehicle tile widget with selection effect
   Widget vehicleTile(String name, String iconPath, void Function(void Function()) setState) {
     bool isSelected = selectedVehicle == name;
+
+    // Static description and thresholds
+    String description = "";
+    String safe = "";
+    String warning = "";
+    String danger = "";
+    Color safeColor = Colors.green;
+    Color warningColor = Colors.orange;
+    Color dangerColor = Colors.red;
+
+    if (name == "Motorcycle") {
+      description =
+      "Motorcycles are very vulnerable to floods even at low levels. "
+          "Unlike cars and trucks, they can easily lose balance or submerge. "
+          "Extra caution is needed when riding in flood-prone areas.";
+      safe = "0–20 cm";
+      warning = "20.1–50 cm";
+      danger = "50.1+ cm";
+      safeColor = Colors.green;
+      warningColor = Colors.orange;
+      dangerColor = Colors.red;
+    } else if (name == "Car") {
+      description =
+      "Cars can normally withstand floods that are below the door step. "
+          "They are less vulnerable than motorcycles but may still be at risk if water rises higher than the engine level.";
+      safe = "0–15 cm";
+      warning = "15.1–30 cm";
+      danger = "30.1+ cm";
+      safeColor = Colors.green;
+      warningColor = Colors.orange;
+      dangerColor = Colors.red;
+    } else if (name == "Truck") {
+      description =
+      "Trucks can handle large floods because of their size and higher chassis. "
+          "They are the safest among common vehicles in deep water, but caution is still advised in extreme flood conditions.";
+      safe = "0–40 cm";
+      warning = "40.1–60 cm";
+      danger = "60.1+ cm";
+      safeColor = Colors.green;
+      warningColor = Colors.orange;
+      dangerColor = Colors.red;
+    }
 
     return GestureDetector(
       onTap: () {
@@ -831,9 +1016,8 @@ class _MapScreenState extends State<MapScreen> {
         });
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
         decoration: BoxDecoration(
-          color: isSelected ? color1_2 : Colors.white,
+          color: Colors.white,
           borderRadius: BorderRadius.circular(14),
           boxShadow: [
             BoxShadow(
@@ -844,17 +1028,77 @@ class _MapScreenState extends State<MapScreen> {
             ),
           ],
         ),
-        child: Row(
+        child: Column(
           children: [
-            Image.asset(iconPath, width: 28, height: 28),
-            const SizedBox(width: 12),
-            Text(
-              name,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: isSelected ? Colors.white : Colors.black,
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+              decoration: BoxDecoration(
+                color: isSelected ? color1 : Colors.white,
+                borderRadius: BorderRadius.circular(14),
               ),
+              child: Row(
+                children: [
+                  Image.asset(
+                    iconPath,
+                    width: 28,
+                    height: 28,
+                    color: isSelected ? Colors.white : color2,
+                    colorBlendMode: BlendMode.srcIn,
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    name,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: isSelected ? Colors.white : Colors.black,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // --- Animated Description Section ---
+            AnimatedSize(
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeInOut,
+              child: isSelected
+                  ? Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      description,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.black87,
+                        height: 1.4,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Text("Safe: ", style: TextStyle(fontWeight: FontWeight.bold, color: safeColor)),
+                        Text(safe, style: TextStyle(color: safeColor)),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        Text("Warning: ", style: TextStyle(fontWeight: FontWeight.bold, color: warningColor)),
+                        Text(warning, style: TextStyle(color: warningColor)),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        Text("Danger: ", style: TextStyle(fontWeight: FontWeight.bold, color: dangerColor)),
+                        Text(danger, style: TextStyle(color: dangerColor)),
+                      ],
+                    ),
+                  ],
+                ),
+              )
+                  : const SizedBox.shrink(),
             ),
           ],
         ),
@@ -874,6 +1118,25 @@ class _MapScreenState extends State<MapScreen> {
           ),
         ),
         color: Colors.white, // background white
+      ),
+      autoDismiss: true,
+      snackbarDuration: Durations.extralong4,
+    ).show(context);
+  }
+
+  void showNearFloodAlertToast(BuildContext context) {
+    DelightToastBar(
+      builder: (context) => ToastCard(
+        leading: const Icon(Icons.crisis_alert_rounded, color: Colors.white, size: 28),
+        title: const Text(
+          "You are only 120–150 meters from an active flood zone",
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        color: Colors.red, // background white
       ),
       autoDismiss: true,
       snackbarDuration: Durations.extralong4,
@@ -917,7 +1180,7 @@ class _MapScreenState extends State<MapScreen> {
             markers: _markers,
             circles: _circles,
             polylines: _polylines,
-            polygons: _polygons,
+            //polygons: _polygons,
             compassEnabled: false,
             myLocationEnabled: false,
             zoomControlsEnabled: false,
@@ -1153,7 +1416,7 @@ class _MapScreenState extends State<MapScreen> {
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: color1_3,
+                              color: color1_4,
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Column(
@@ -1189,7 +1452,7 @@ class _MapScreenState extends State<MapScreen> {
                                 /// Destination
                                 InkWell(
                                   onTap: () {
-                                    print("Select Destination clicked");
+                                    openPlaceSearch();
                                   },
                                   child: Container(
                                     height: 50,
@@ -1200,8 +1463,15 @@ class _MapScreenState extends State<MapScreen> {
                                         const SizedBox(width: 10),
                                         Expanded(
                                           child: Text(
-                                            "Select Destination",
-                                            style: TextStyle(fontSize: 16),
+                                            // Show savedPlace name if available, otherwise use coordinates, or default text
+                                            savedPlace["name"] != ""
+                                                ? savedPlace["name"]
+                                                : (savedPinPosition != null
+                                                ? "${savedPinPosition!.latitude.toStringAsFixed(5)}, ${savedPinPosition!.longitude.toStringAsFixed(5)}"
+                                                : "Select Destination"),
+                                            style: const TextStyle(fontSize: 16),
+                                            overflow: TextOverflow.ellipsis, // truncate if too long
+                                            maxLines: 1, // ensure only one line
                                           ),
                                         ),
                                         Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
@@ -1792,15 +2062,229 @@ class _MapScreenState extends State<MapScreen> {
                                         savedPinMarker = tappedMarker;
                                         savedPinPosition = tappedPosition;
 
+                                        savedPlace = Map.from(currentPlace); // update savedPlace
+
                                         // Clear temp variables
                                         tappedMarker = null;
                                         tappedPosition = null;
+                                        currentPlace = {
+                                          "name": "",
+                                          "location": LatLng(0.0, 0.0),
+                                        };
 
-                                        cancelPinSelection();
+                                        // Hide confirmation sheet and cleanup
+                                        showPinConfirmationSheet = false;
+
+                                        // Optional: remove sensor circles
+                                        _circles.removeWhere((c) => c.circleId.value.startsWith('sensor'));
                                       });
                                     },
                                     child: const Text(
                                       "CONFIRM",
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 40), // bottom padding
+                        ],
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          ///Reroute Confirmation
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOut,
+            left: 0,
+            right: 0,
+            bottom: showRerouteConfirmationSheet ? rerouteConfirmationDragOffset : -rerouteConfirmationSheetHeight,
+
+            // AUTO HEIGHT
+            height: rerouteConfirmationSheetHeight == 0 ? null : rerouteConfirmationSheetHeight,
+
+            child: GestureDetector(
+              onVerticalDragUpdate: (details) {
+                setState(() {
+                  rerouteConfirmationDragOffset -= details.delta.dy;
+
+                  if (rerouteConfirmationDragOffset > 0) rerouteConfirmationDragOffset = 0;
+
+                  if (rerouteConfirmationDragOffset < -rerouteConfirmationSheetHeight) {
+                    rerouteConfirmationDragOffset = -rerouteConfirmationSheetHeight;
+                  }
+                });
+              },
+
+              onVerticalDragEnd: (details) {
+                if (rerouteConfirmationDragOffset < -rerouteConfirmationSheetHeight / 2) {
+                  setState(() {
+                    showRerouteConfirmationSheet = false;
+                    rerouteConfirmationDragOffset = 0;
+                    _circles.removeWhere((c) => c.circleId.value.startsWith('sensor'));
+                  });
+                } else {
+                  setState(() {
+                    rerouteConfirmationDragOffset = 0;
+                  });
+                }
+              },
+
+              child: Container(
+                key: rerouteConfirmKey,
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black26,
+                      blurRadius: 10,
+                      offset: Offset(0, -2),
+                    ),
+                  ],
+                ),
+
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      // AUTO-DETECT HEIGHT
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        final renderBox =
+                        rerouteConfirmKey.currentContext?.findRenderObject() as RenderBox?;
+
+                        if (renderBox != null) {
+                          final newHeight = renderBox.size.height;
+
+                          if (rerouteConfirmationSheetHeight != newHeight) {
+                            setState(() {
+                              rerouteConfirmationSheetHeight = newHeight;
+                            });
+                          }
+                        }
+                      });
+
+                      final sensor = selectedSensorId != null
+                          ? sensors[selectedSensorId]!
+                          : null;
+                      final data = sensor?['sensorData'];
+
+                      return Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // DRAG HANDLE
+                          Center(
+                            child: Container(
+                              width: 40,
+                              height: 5,
+                              decoration: BoxDecoration(
+                                color: Colors.grey[300],
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 15),
+
+                          // HEADER
+                          Row(
+                            children: [
+                              const Icon(Icons.location_pin,
+                                  size: 32, color: color1_2),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      "Route Adjustment", //Set Alternate Route
+                                      style: TextStyle(
+                                          fontSize: 20, fontWeight: FontWeight.bold),
+                                    ),
+                                    Text(
+                                      "Confirm to create a detour.", //Tap Confirm to place a pin and create an alternate route.”
+                                      style: TextStyle(color: Colors.grey[600]),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 15),
+
+                          // CANCEL & CONFIRM BUTTONS
+                          Row(
+                            children: [
+                              // CANCEL BUTTON
+                              Expanded(
+                                child: SizedBox(
+                                  height: 50,
+                                  child: OutlinedButton(
+                                    style: OutlinedButton.styleFrom(
+                                      side: const BorderSide(
+                                          color: color1, width: 2),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                    onPressed: () {
+                                      setState(() {
+                                        showRerouteConfirmationSheet = false;
+                                      });
+                                    },
+                                    child: const Text(
+                                      "IGNORE",
+                                      style: TextStyle(
+                                        color: color1,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+
+                              const SizedBox(width: 12),
+
+                              // CONFIRM BUTTON
+                              Expanded(
+                                child: SizedBox(
+                                  height: 50,
+                                  child: ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: color1,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                    onPressed: () {
+                                      setState(() {
+                                        normalRouting = false;
+                                        showRerouteConfirmationSheet = false;
+                                      });
+
+                                      // 2–3. After UI updates, draw new route
+                                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                                        _drawRoute(
+                                          LatLng(currentPosition!.latitude, currentPosition!.longitude),
+                                          savedPinMarker!.position,
+                                        );
+                                      });
+                                    },
+                                    child: const Text(
+                                      "REROUTE",
                                       style: TextStyle(
                                         fontSize: 18,
                                         fontWeight: FontWeight.bold,
@@ -1835,10 +2319,11 @@ class _MapScreenState extends State<MapScreen> {
                     setState(() {
                       showSensorSheet = false;
                       showSensorSettingsSheet = false;
+                      showPinConfirmationSheet = false;
+                      showRerouteConfirmationSheet = false;
                       cancelPinSelection();
                       showDirectionSheet = !showDirectionSheet;
                     });
-                    //_showDirectionDetails();
                     _circles.removeWhere((c) => c.circleId.value.startsWith('sensor'));
                   },
                   label: 'Directions',
@@ -1850,6 +2335,8 @@ class _MapScreenState extends State<MapScreen> {
                     setState(() {
                       showSensorSheet = false;
                       showDirectionSheet = false;
+                      showPinConfirmationSheet = false;
+                      showRerouteConfirmationSheet = false;
                       cancelPinSelection();
                       showSensorSettingsSheet = !showSensorSettingsSheet;
                     });
@@ -1860,10 +2347,23 @@ class _MapScreenState extends State<MapScreen> {
                   iconColor: (showSensorSettingsSheet) ? color1 : color2,
                 ),
                 bottomButton(
-                  onTap: () => print("👤 Account pressed"),
+                  onTap: () {
+                    if (nearAlertZone) {
+                      setState(() {
+                        showSensorSheet = false;
+                        showDirectionSheet = false;
+                        showSensorSettingsSheet = false;
+                        showPinConfirmationSheet = false;
+                        cancelPinSelection();
+                        showRerouteConfirmationSheet = !showRerouteConfirmationSheet;
+                      });
+                      _circles.removeWhere((c) => c.circleId.value.startsWith('sensor'));
+                    }
+                  },
                   label: 'Alerts',
                   imagePath: 'assets/images/icons/exclamation.png',
-                  iconColor: (nearAlertZone) ? Colors.red : color2,
+                  iconColor: (showRerouteConfirmationSheet) ? color1 : (displayAlert) ? Colors.red : color2,
+                  buttonColor: (showRerouteConfirmationSheet) ? Colors.white : (displayAlert) ? color_alert : Colors.white,
                 ),
               ],
             ),
@@ -1908,41 +2408,60 @@ class _MapScreenState extends State<MapScreen> {
     required String imagePath,
     required String label,
     Color iconColor = color2,
+    Color buttonColor = Colors.white,
   }) {
+    bool _isPressed = false;
+
     return Expanded(
-      child: ElevatedButton(
-        onPressed: onTap,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.white,
-          foregroundColor: Colors.black,
-          minimumSize: const Size.fromHeight(60),
-          shape: const RoundedRectangleBorder(),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Image.asset(
-              imagePath,
-              width: 25,
-              height: 25,
-              fit: BoxFit.contain,
-              color: iconColor,
-              colorBlendMode: BlendMode.srcIn,
-            ),
-            const SizedBox(height: 2), // spacing between icon and text
-            Text(
-              label,
-              style: TextStyle( // remove const here
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                color: iconColor, // now works
+      child: InkWell(
+        onTap: () {
+          if (_isPressed) return;
+          _isPressed = true;
+          onTap();
+          Future.delayed(const Duration(milliseconds: 350), () {
+            _isPressed = false;
+          });
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          decoration: BoxDecoration(
+            color: buttonColor,
+            borderRadius: BorderRadius.zero,
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                child: Image.asset(
+                  imagePath,
+                  key: UniqueKey(), // ✅ UniqueKey avoids duplicate key bug
+                  width: 25,
+                  height: 25,
+                  fit: BoxFit.contain,
+                  color: iconColor,
+                  colorBlendMode: BlendMode.srcIn,
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 2),
+              AnimatedDefaultTextStyle(
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: iconColor,
+                ),
+                duration: const Duration(milliseconds: 300),
+                child: Text(label),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
+
 
 
 
